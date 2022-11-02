@@ -1,0 +1,74 @@
+<!-- <!DOCTYPE html> -->
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Gungame</title>
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@500&display=swap"
+            rel="stylesheet"
+        />
+
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/msgpack-lite/0.1.5/msgpack.min.js" integrity="sha512-iklLb1eedGq+n6CU+Nknfyw0mNC9bc7g99ObbqqsaL8IZNeEk/eAfvn2B27WqhBo9eKukU2DXEP0kUqCCRWRBw=="
+	 crossorigin="anonymous" referrerpolicy="no-referrer">
+
+	</script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/sat/0.9.0/SAT.min.js" integrity="sha512-I/Whsg25W/NpxpNL5dXAySa7JMz/r0ibfrqaTUTT97m2ggJAYbiioXaqL5hfoXmZ1CsvXaPyLKrwe3sSem20/A=="
+	 crossorigin="anonymous" referrerpolicy="no-referrer">
+
+	</script>
+
+        <link href="./style.css" rel="stylesheet" />
+    </head>
+
+    <body oncontextmenu="return false">
+        <div class="menu">
+            <span class="title">GunGame<span style="font-size: 1rem !important;">TM</span></span>
+            <span class="player-count"></span>
+            <span class="m-title">Weapon Selection</span>
+			<div class="gun-div">
+                <span class="gun a-select" data-type="Pistol">P<span class="smol">istol</span></span>
+                <span class="gun" data-type="Shotgun">S<span class="smol">hotgun</span></span>
+                <span class="gun" data-type="Rifle">R<span class="smol">ifle</span></span>
+				<span class="gun" data-type="Burst">B<span class="smol">urst</span></span>
+				<span class="gun" data-type="SMG">S<span class="smol">MG</span></span>
+<!-- 				<span class="gun" data-type="LMG">L<span class="smol">MG</span></span> -->
+            </div>
+			<span class="m-title">Available Armor</span>
+            <div class="armor-div">
+                <span class="armor a-select" data-type="0">X</span>
+<!--                 <span class="armor" data-type="1">I</span> -->
+<!--                 <span class="armor" data-type="2">II</span> -->
+            </div>
+            <div class="name-div">
+                <span class="m-title">Name</span>
+                <form class="username-form">
+                    <input
+                        type="text"
+                        class="username-input"
+                        maxlength="16"
+                        placeholder=""
+                        autocomplete="off"
+                        spellcheck="false"
+                        autofocus
+                    />
+                </form>
+            </div>
+        </div>
+        <div class="game hidden">
+            <canvas class="canvas"></canvas>
+			<div class="chat-div hidden">
+				<form class="chat-form">
+					<input type="text" placeholder="Type something" class="chat-input" maxlength="60" autocomplete="off" spellcheck="false"/>
+				</form>
+			</div>	
+        </div>
+        <script src="player.js"></script>
+        <script src="bullet.js"></script>
+        <script src="index.js"></script>
+	 <script src="../shared/sim.js"></script>
+    </body>
+</html>

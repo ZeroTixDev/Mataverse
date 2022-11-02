@@ -1,0 +1,200 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+/*     background: #002905; */
+/* 	background: #041e45; */
+	background: #363636;
+    font-family: Arial;
+    font-size: 16px;
+/*     user-select: none; */
+    font-family: 'Work Sans', sans-serif;
+}
+
+canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+/* 	animation: filterT 10s linear infinite; */
+}
+
+@keyframes filterT {
+	0% {
+		filter: hue-rotate(0deg);
+	}
+	50% {
+		filter: hue-rotate(180deg);
+	}
+	100% {
+		filter: hue-rotate(360deg);
+	}
+}
+
+.topgui {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.topgui div {
+    margin: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+label {
+    font-size: 2rem;
+}
+
+input {
+    margin: 5px;
+    outline: false;
+    border: none;
+    width: 30px;
+    height: 30px;
+}
+
+.menu {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+/* 	background-image: url('./a.png');
+	background-image-repeat: none;
+	background-size: cover; */
+}
+
+.title {
+    font-size: 5rem;
+    color: #c9c9c9;
+    -webkit-text-stroke-width: 0px;
+    -webkit-text-stroke-color: black;
+/*     margin: 0px; */
+    position: absolute;
+    top: -10px;
+	background: rgba(0, 0, 0, 0.7);
+	width: 100vw;
+	padding: 0px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.player-count {
+    font-size: 1.25rem;
+    color: #ffffff;
+    -webkit-text-stroke-width: 0px;
+    -webkit-text-stroke-color: black;
+    margin: 50px;
+    position: absolute;
+    bottom: -45px;
+}
+
+.m-title {
+    font-size: 3rem;
+    color: white;
+}
+.armor-div , .gun-div {
+    width: 100px;
+    height: 100px;
+    background: #0a0a0a;
+    padding: 10px;
+    margin: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.armor, .gun {
+    width: 75px;
+    height: 75px;
+    background: #757575;
+    color: #292929;
+    font-size: 3rem;
+    margin: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.gun {
+	width: 150px;
+	height: 75px;
+}
+
+.gun-div {
+	width: calc(150px * 5 + 50px);
+}
+
+.name-div {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.username-input {
+    width: 275px;
+    height: 30px;
+    padding: 5px;
+    border: none;
+    outline: none;
+    font-size: 1.25rem;
+	background: #171717;
+	color: #ffffff;
+	text-align: center;
+	z-index: 29085;
+}
+
+.chat-div {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100vw;
+	height: 100vh;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.chat-input {
+	width: 275px;
+    height: 30px;
+    padding: 5px;
+    border: none;
+    outline: none;
+    font-size: 1.25rem;
+	position: relative;
+	top: 100px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	z-index: 999;
+}
+
+.a-select {
+    color: #141414;
+    background: #424242;
+}
+
+.smol {
+	font-size: 1.5rem;
+}
+
+.hidden {
+    display: none !important;
+}
