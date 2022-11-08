@@ -591,6 +591,18 @@ async function handleMessage(event, lag = true) {
 			if (pack._qf !== undefined) {
 				players[pack.id]._qf = pack._qf;
 			}
+			if (pack.accurateNext != undefined) {
+				players[pack.id].accurateNext = pack.accurateNext;
+			}
+			if (pack.angle != undefined) {
+				players[pack.id].serverAngle = pack.angle;
+			}
+			if (pack._bendCurve != undefined) {
+				players[pack.id]._bendCurve = pack._bendCurve;
+			}
+			if (pack.bending != undefined) {
+				players[pack.id].bending = pack.bending;
+			}
         }
     }
     if (data.newBullet != undefined) {
@@ -920,6 +932,9 @@ function update(dt) {
 	me().reloadTime = Weapons[me().weapon].reloadTime;
 	if (me().powers.includes('Magz of War')) {
 		me().reloadTime += 1;
+	}
+	if (me().powers.includes('Accuracy Reload') && me().ammo <= 0) {
+		me().reloadTime += 2;
 	}
 	
 	if (me().ammo === 0 && !me().reloading) {
@@ -1307,22 +1322,23 @@ function update(dt) {
     // prediction
     for (const bulletId of Object.keys(bullets)) {
         const bullet = bullets[bulletId];
-        bullet.x += Math.cos(bullet.angle) * bullet.speed * dt;
-        bullet.y += Math.sin(bullet.angle) * bullet.speed * dt;
-		bullet.lifeTimer += dt;
-        if (bullet.pingTimer < bullet.totalPing) {
-            let p = bullet.pingTimer;
-            bullet.pingTimer += 7;
-            bullet.pingTimer = Math.min(bullet.pingTimer, bullet.totalPing);
-            let tempDt = (bullet.pingTimer - p) / 1000;
-            bullet.x += Math.cos(bullet.angle) * bullet.speed * tempDt;
-            bullet.y += Math.sin(bullet.angle) * bullet.speed * tempDt;
-			bullet.lifeTimer += tempDt;
-        }
+        bullet.x += Math.cos(bullet.angle) * bullet.speed * dt * globalThis.gameSpeed;
+        bullet.y += Math.sin(bullet.angle) * bullet.speed * dt * globalThis.gameSpeed;
+		bullet.lifeTimer += dt * globalThis.gameSpeed;
+		bullet.angle += bullet.curveFactor * dt * globalThis.gameSpeed;
+   //      if (bullet.pingTimer < bullet.totalPing) {
+   //          let p = bullet.pingTimer;
+   //          bullet.pingTimer += 7;
+   //          bullet.pingTimer = Math.min(bullet.pingTimer, bullet.totalPing);
+   //          let tempDt = (bullet.pingTimer - p) / 1000;
+   //          bullet.x += Math.cos(bullet.angle) * bullet.speed * tempDt;
+   //          bullet.y += Math.sin(bullet.angle) * bullet.speed * tempDt;
+			// bullet.lifeTimer += tempDt;
+   //      }
 		if (bullet.lifeTimer > bullet.life) {
 			bullet.hit = true;
 		}
-        bullet.recordHist();
+        // bullet.recordHist();
     }
     for (let i = 0; i < fakeBullets.length; i++) {
         let bullet = fakeBullets[i];
@@ -1449,6 +1465,9 @@ function run() {
 		if (bullet.magz) {
 			// ctx.fillStyle = Powers['Magz of War'].color;
 			ctx.fillStyle = '#071eb0'
+		}
+		if (Math.abs(bullet.curveFactor) > 0) {
+			ctx.fillStyle = '#51ff33'//'#d878ff'
 		}
 		if (bullet.rev) {
 			ctx.fillStyle = Powers['Bullet Boomerang'].color;
@@ -1579,6 +1598,53 @@ function run() {
 	// 	ctx.fill();
 	// 	ctx.globalAlpha = 1;
 	// }
+
+	// ABOVE PLAYER EFFECTS - bended barrel for now
+	for (const playerId of Object.keys(players)) {
+		const player = players[playerId]
+		let x = offsetX(player.x);
+        let y = offsetY(player.y);
+		// if (playerId == selfId && (window.performance.now() / 1000) - updatetimestamp > pThreshold) {
+		// 	let ostate = stateBuffer[currentTick - Math.ceil((Math.round(rrt)/1000) * serverTickRate)]
+		// 	x = offsetX(ostate.x);
+		// 	y = offsetY(ostate.y);
+		// } else 
+		if (playerId == selfId) {
+			x = offsetX(player.isx);
+			y = offsetY(player.isy);
+		}
+		if (player.powers.includes('Shadow Reload') && player.invis && playerId != selfId) {
+			x = offsetX(player.invisX);
+			y = offsetY(player.invisY);
+		}
+		// if (player.powers.includes('Bended Barrel') && playerId == selfId) {
+		// 	ctx.strokeStyle = player.bending ? '#d878ff' : Powers['Bended Barrel'].color;
+		// 	ctx.lineWidth = 5;
+		// 	ctx.lineCap = 'round'
+		// 	let bestId = null;
+		// 	let bestDist = Infinity;
+		// 	for (const pId of Object.keys(players)) {
+		// 		if (pId == player.id) continue;
+		// 		const p = players[pId];
+		// 		const distX = player.isx - p.x;
+		// 		const distY = player.isy - p.y;
+		// 		const dist = Math.sqrt(distX * distX + distY * distY);
+		// 		if (dist < bestDist) {
+		// 			bestDist = dist;
+		// 			bestId = pId;
+		// 		}
+		// 	}
+		// 	if (bestId != null) {
+		// 		const p = players[bestId];
+		// 		ctx.globalAlpha = player.bending ? 1: 0.2;
+		// 		ctx.beginPath();
+		// 		ctx.lineTo(x, y);
+		// 		ctx.lineTo(offsetX(p.isx ?? p.x), offsetY(p.isy ?? p.y));
+		// 		ctx.stroke()
+		// 		ctx.globalAlpha = 1;
+		// 	}
+		// }
+	}
 	
     for (const playerId of Object.keys(players)) {
         // ctx.globalAlpha = 0.7;
@@ -1661,6 +1727,12 @@ function run() {
 		if (player.lCharge) {
 			ctx.strokeStyle = 'red'
 		}
+		if (player.accurateNext) {
+			ctx.strokeStyle = 'blue'
+		}
+		if (player.bending) {
+			// ctx.strokeStyle = '#d878ff'//Powers['Bended Barrel'].color;
+		}
         ctx.lineWidth = 2 + (player.armor / 100) * 13; // + armor
         ctx.beginPath();
         ctx.arc(x, y, player.r - ctx.lineWidth/2 + 1, 0, Math.PI * 2);
@@ -1710,6 +1782,7 @@ function run() {
 	            y + player.r * (1.5 /*+ 0.2 * (player.armor / 100)*/)
 	        );
 		}
+	
         ctx.fillStyle = 'white';
         // ctx.fillText(player.kills, x, y);
         // if (playerId == selfId) {
@@ -1729,6 +1802,9 @@ function run() {
         ctx.fillStyle = Weapons[player.weapon].color ?? 'black';
 		if (player.lCharge) {
 			ctx.fillStyle = 'red'
+		}
+		if (player.bending) {
+			ctx.fillStyle = Powers['Bended Barrel'].color//'#d878ff'
 		}
 	// ctx.fillStyle = '#303030'
 		const gunWidth = Weapons[player.weapon].gunWidth ?? 6;
@@ -1775,6 +1851,9 @@ function run() {
 			if (player.lCharge) {
 				ctx.fillStyle = 'red'
 			}
+			if (player.bending) {
+				ctx.fillStyle = Powers['Bended Barrel'].color;//'#d878ff'
+			}
 			if (playerId == selfId) {
 				ctx.rotate(-(currentAngle - Math.PI / 2))
 				ctx.fillText(me().ammo, player.r + 4 /*+ (player.armor / 100) * 13*/ - gunWidth, player.r+2);
@@ -1816,6 +1895,9 @@ function run() {
 			if (player.lCharge) {
 				ctx.fillStyle = 'red'
 			}
+			if (player.bending) {
+				// haha no color change because bending doesnt work after reload
+			}
 			if (playerId == selfId) {
 				ctx.rotate(-(currentAngle - Math.PI / 2))
 				ctx.fillText('...' + Math.floor(mult*Weapons[player.weapon].ammo), player.r + 4/*+ 2 + (player.armor / 100) * 13*/ - gunWidth, player.r);
@@ -1849,6 +1931,136 @@ function run() {
 		// }
         ctx.restore();
 		ctx.shadowBlur = 0;
+		if (showServer && playerId == selfId && player._bendCurve != undefined) {
+			const rotation = player._bendCurve.rotation * (Math.PI/180);
+			ctx.fillStyle = 'blue';
+			// ctx.beginPath()
+			ctx.fillText(Math.round(player._bendCurve.rotation), x + Math.cos(rotation) * player.r, y + Math.sin(rotation) * player.r)
+			// ctx.fill()
+			if (player._bendCurve.factor != undefined) {
+				player.name = player._bendCurve.factor;
+			}
+		}
+		ctx.fillStyle = Weapons[player.weapon].color ?? 'black';
+		if (playerId == selfId && showServer) {
+			currentAngle = player.serverAngle;
+			ctx.save();
+        	ctx.translate(x, y);
+	        ctx.rotate(currentAngle - Math.PI / 2);
+			let mult = playerId == selfId ? /*(currentBulletCooldown/bulletCooldown)*/ 
+				(bulletCooldown > 0.3 ? (currentBulletCooldown < bulletCooldown ? 0: 1) :1): 1;
+			if (!player.reloading) {
+				let cmult = playerId == selfId ? Math.min((currentBulletCooldown/bulletCooldown)*(5/3) , 1): 1;
+	      	  ctx.globalAlpha = 0.25;
+		        ctx.fillRect(
+		            player.r /*+ 2 + (player.armor / 100) * 13*/ - gunWidth*2,
+		            -player.r * 0 + cmult*5 - 5,
+		            gunWidth*2,
+		            gunHeight * 1.5,
+		        );
+				
+				// player.name = cmult;
+				// player.name = Math.round(c*10)/10
+				ctx.globalAlpha = 0.5;
+				 ctx.fillRect(
+		            player.r/*+ 2 + (player.armor / 100) * 13*/ - gunWidth*2,
+		            -player.r * 0 + cmult*5 - 5,
+		            gunWidth*2,
+		            gunHeight * 1.5 * mult,
+		        );
+				// if (player.powers.includes('Magz of War')) {
+					// if () {
+						// ctx.strokeStyle = 'white';
+						// ctx.lineWidth = 2;
+						// ctx.strokeRect(
+		    //         		player.r /*+ 2 + (player.armor / 100) * 13*/ - gunWidth*2,
+				  //           -player.r * 0,
+				  //           gunWidth*2,
+				  //           gunHeight * 1.5 * mult,
+				  //       );
+					// }
+				// }
+				// ctx.fillStyle = 'black';
+				// ctx.font = '20px Work Sans, Arial';
+				// ctx.textAlign = 'center';
+				// if (player.lCharge) {
+				// 	ctx.fillStyle = 'red'
+				// }
+				// if (playerId == selfId) {
+				// 	ctx.rotate(-(currentAngle - Math.PI / 2))
+				// 	ctx.fillText(me().ammo, player.r + 4 /*+ (player.armor / 100) * 13*/ - gunWidth, player.r+2);
+				// }
+			} else if (player.reloading) {
+				mult = playerId == selfId ? (player.reloadTimer/player.reloadTime): 1;
+				// const c = playerId == selfId ? 1 - (currentBulletCooldown/bulletCooldown): 1;
+				let c = ctx.fillStyle;
+				// if ()
+				ctx.globalAlpha = 0.2;
+		        ctx.fillRect(
+		            player.r /*+ 2 + (player.armor / 100) * 13*/ - gunWidth*2 + 30,
+		            -player.r * 0 - 30,
+		            gunWidth*2,
+		            gunHeight * 1.5,
+		        );
+				ctx.globalAlpha = 0.4;
+				 ctx.fillRect(
+		            player.r /*+ 2 + (player.armor / 100) * 13*/ - gunWidth*2 + 30,
+		            -player.r * 0 - 30 ,
+		            gunWidth*2,
+		            gunHeight * 1.5 * mult,
+		        );
+				// if (player.powers.includes('Magz of War')) {
+				// 	if (player.reloadTimer > player.reloadTime - 1) {
+				// 		ctx.strokeStyle = '#030017'
+				// 		ctx.lineWidth = 4;
+				// 		ctx.strokeRect(
+		  //           		player.r /*+ 2 + (player.armor / 100) * 13*/ - gunWidth*2 + 30,
+				//             -player.r * 0 - 30,
+				//             gunWidth*2,
+				//             gunHeight * 1.5 * mult,
+				//         );
+				// 	}
+				// }
+				// ctx.fillStyle = 'black';
+				// ctx.font = '20px Work Sans, Arial';
+				// ctx.textAlign = 'center';
+				// if (player.lCharge) {
+				// 	ctx.fillStyle = 'red'
+				// }
+				// if (playerId == selfId) {
+				// 	ctx.rotate(-(currentAngle - Math.PI / 2))
+				// 	ctx.fillText('...' + Math.floor(mult*Weapons[player.weapon].ammo), player.r + 4/*+ 2 + (player.armor / 100) * 13*/ - gunWidth, player.r);
+				// }
+			}
+			// ctx.globalAlpha = 0.6
+			// ctx.fillRect(
+	  //           player.r + 2 + (player.armor / 100) * 13,
+	  //           -player.r * 1,
+	  //           gunWidth*2,
+	  //           gunHeight * 1.5 * mult
+	  //       );
+	        ctx.globalAlpha = 1;
+			// if (player.weapon === 'Dual') {
+			// 	// ctx.rotate(Math.PI)
+			// 	ctx.globalAlpha = 0.2;
+		 //        ctx.fillRect(
+		 //            -player.r - player.r - gunWidth*2 + player.r -2 - (player.armor / 100) * 13,
+		 //            -player.r * 1,
+		 //            gunWidth*2,
+		 //            gunHeight * 1.5,
+		 //        );
+			// 	ctx.globalAlpha = 0.6
+			// 	ctx.fillRect(
+		 //            -player.r - player.r - gunWidth*2 + player.r  -2- (player.armor / 100) * 13,
+		 //            -player.r * 1,
+		 //            gunWidth*2,
+		 //            gunHeight * 1.5 * mult
+		 //        );
+		 //        ctx.globalAlpha = 1;
+			// }
+	        ctx.restore();
+			ctx.shadowBlur = 0;
+		}
 		// if (topPlayers()[0].id == playerId && playerId != selfId) {
 		// 	ctx.shadowBlur = 0;
 		// }

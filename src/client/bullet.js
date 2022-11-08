@@ -21,8 +21,8 @@ class Bullet {
 			// this.x += Math.cos(this.angle) * this.speed * -this.ping;
 			// this.y += Math.sin(this.angle) * this.speed * -this.ping;
 		} else {
-			this.x += Math.cos(this.angle) * this.speed * (this.totalPing)/1000;
-			this.y += Math.sin(this.angle) * this.speed * (this.totalPing)/1000;
+			// this.x += Math.cos(this.angle) * this.speed * (this.totalPing)/1000;
+			// this.y += Math.sin(this.angle) * this.speed * (this.totalPing)/1000;
 			this.totalPing = 0;
 		}
     }
@@ -37,12 +37,14 @@ class Bullet {
             let x = this.x;
             let y = this.y;
 			let lifetimer = this.lifeTimer;
+			let life = this.life;
             for (const key of Object.keys(pack)) {
                 this[key] = pack[key];
             }
             this.x = x;
             this.y = y;
 			this.lifeTimer = lifetimer;
+			// this.life = life;
             this.interpX = pack.x;
             this.interpY = pack.y;
         } else {

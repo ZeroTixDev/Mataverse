@@ -11,6 +11,7 @@ module.exports = class Bullet {
 		// this.speed = 0;
         this.life = life*0.9;
         this.lifeTimer = 0;
+		this.curveFactor = 0;
         this.uid = uid;
         this.parent = parent;
         // this.ping = approx / 1000;
@@ -51,8 +52,8 @@ module.exports = class Bullet {
 		}
 		return false;
 	}
-    update(dt, obstacles, players) {
-        
+    update(delta, obstacles, players) {
+        let dt = delta * globalThis.gameSpeed;
 		let throughWall = false;
 		for (const playerId of Object.keys(players)) {
 			const player = players[playerId];
@@ -70,6 +71,7 @@ module.exports = class Bullet {
 		this.x += Math.cos(this.angle) * this.speed * dt;
         this.y += Math.sin(this.angle) * this.speed * dt;
         this.lifeTimer += dt;
+		this.angle += this.curveFactor * dt;
         // if (this.pingSim < this.totalPing && this.firstSim) {
         //     let a = this.pingSim;
         //     this.pingSim += 7;
@@ -107,6 +109,7 @@ module.exports = class Bullet {
             ping: this.ping,
 			magz: this.magz,
 			rev: this.rev,
+			curveFactor: this.curveFactor,
         };
     }
 };

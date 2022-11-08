@@ -99,8 +99,16 @@ module.exports = class Player {
 		this.lTimer = Infinity;
 		this.lCharge = false;
 
+		//accuracy reload
+		this.accurateNext = false;
+
 		// quantum field
 		this._qf = null;
+		// bended barrel
+		this.bendTimer = Infinity;
+		this.bendCurveFactor = 0;
+		this._bendCurve = {};
+		this.bending = false;
 
 		this.usePassives([])
 		// each ability has special properties
@@ -151,8 +159,73 @@ module.exports = class Player {
     // has that been done?
     // because error correction codes are easier to send
     } 
-	activate() {
+	activate(players) {
 		// ability activation on space - sent from clietn
+		if (this.powers.includes('Bended Barrel') && this.activeCooldownTimer >= this.activeCooldown) {
+			
+			// this.bendTimer = 3;
+			// this.bending = true;
+			let bestId = null;
+			let bestDist = Infinity;
+			for (const pId of Object.keys(players)) {
+				if (pId == this.id) continue;
+				const player = players[pId];
+				const distX = this.x - player.x;
+				const distY = this.y - player.y;
+				const dist = Math.sqrt(distX * distX + distY * distY);
+				if (dist < bestDist) {
+					bestDist = dist;
+					bestId = pId;
+				}
+			}
+			// calculate curve factor eq
+			// dist = muzzle (or parent player center for now because lazy) and center of nearest player
+			// rot = angle of rotation of gun relative to player -180 to 180
+			// spd = bullet speed every tick (bullet.speed*(1/120))
+			// (rot*-2)/(((csc(rot) * dist/2)*rot*2)/ spd)
+			if (bestId != null) {
+				const nearestPlayer = players[bestId];
+				const _oppAngle = this.angle - Math.PI / 2;
+				const gunWidth = Weapons[this.weapon].gunWidth ?? 6;
+				const gunHeight = this.r * (Weapons[this.weapon].gunHeight ?? 2);
+				const muzzleX = this.x + Math.cos(_oppAngle) * (this.r - gunWidth) 
+					+ Math.cos(this.angle) * (gunHeight * 1.5);
+				const muzzleY = this.y + Math.sin(_oppAngle) * (this.r - gunWidth)
+					+ Math.sin(this.angle) * (gunHeight * 1.5); 
+				const distX = players[bestId].x - muzzleX;
+				const distY = players[bestId].y - muzzleY;
+				const dist = Math.sqrt(distX * distX + distY * distY); // absolute dist between players
+				let rotation = Math.atan2(players[bestId].y - muzzleY, players[bestId].x - muzzleX)
+					* (180/Math.PI) //- 90;
+				// rotation range (-180, 180) ideally?
+				if (rotation < -180) {
+					rotation = 180 + (rotation + 180);
+				}
+				let gunRotation = this.angle * (180/Math.PI);
+				if (gunRotation > 180) {
+					gunRotation = -180 + (gunRotation - 180)
+				}
+				gunRotation = rotation - gunRotation;
+				if (gunRotation < -180) {
+					gunRotation = 180 + (gunRotation + 180);
+				}
+				if (gunRotation > 180) {
+					gunRotation = -180 + (gunRotation - 180)
+				}
+				rotation = gunRotation;
+				this._bendCurve = {}
+				this._bendCurve.rotation = rotation;
+				this._bendCurve.dist = dist;
+				this.bending = true;
+				this.activeCooldown = 5;
+				this.activeCooldownTimer = 0;
+				// this.bendCurveFactor = ((2 * ))	
+			} else {
+				this._bendCurve = undefined;
+			}
+			// this.bendCurveFactor = 0;
+			this.dataChange = true;
+		}
 		if (this.powers.includes('Angelic Lunge') && this.currentShift >= this.shiftLength) {
 			this.xv = 0;
 			this.yv = 0;
@@ -187,16 +260,17 @@ module.exports = class Player {
 				const bullet = bullets[bulletId];
 				if (bullet.parent != this.id) continue;
 				bullet.angle += Math.PI;
+				bullet.curveFactor *= -1;
 				bullet.pChanged = true;
-				if (!bullet.rev) {
+				// if (!bullet.rev) {
 					bullet.life*= 2
-				}
+				// }
 				bullet.rev = true;
 				bullet.lifeTimer = 0;
 				reversed = true;
 			}
 			if (reversed) {
-				this.activeCooldown = 0.5;	
+				this.activeCooldown = 0;	
 				this.activeCooldownTimer = 0;
 			}
 		}
@@ -473,6 +547,11 @@ module.exports = class Player {
 		this.magzTime -= dt;
 		this.iTimer -= dt;
 		this.lTimer -= dt;
+		// this.bendTimer -= dt;
+		// if (this.bendTimer <= 0) {
+		// 	this.bendTimer = Infinity;
+		// 	this.bendCurveFactor = 0;
+		// }
 		if (this.lTimer >= 0 && this.lTimer != Infinity) {
 			this.takeDamage(30 * dt)
 		}
@@ -647,7 +726,10 @@ module.exports = class Player {
 			lCharge: this.lCharge,
 			activeCooldown: this.activeCooldown,
 			activeCooldownTimer: this.activeCooldownTimer,
+			accurateNext: this.accurateNext,
 			_qf: this._qf,
+			bending: this.bending,
+			_bendCurve: this._bendCurve,
 			// lastSentInput: this.lastSentInput,
 			// lastProcessedInputPayload: this.lastProcessedInputPayload,
         };

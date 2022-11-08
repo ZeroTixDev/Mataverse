@@ -27,6 +27,7 @@ class Player {
         this.iy = this.y;
 		this.cshift = this.currentShift;
         this.interpAngle = this.angle;
+		this.serverAngle = this.angle;
         if (this.id !== selfId) {
             this.timeElapsed = 0;
             this.timeToReachTarget = 1 / (serverTickRate ?? 60);

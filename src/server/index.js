@@ -10,6 +10,7 @@ const packedPlayers = {};
 const bullets = {};
 global.tickRate = 120;
 global.sendRate = 120;
+// global.gameSpeed = 0.5;
 let timer = 0;
 let globalTick = 0;
 const arena = { r: 700 };
@@ -29,8 +30,8 @@ global.getBullets = () => bullets;
 // ];
 // const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":300,"y":300,"width":200,"height":200,"type":"obstacle"},{"x":1100,"y":300,"width":200,"height":200,"type":"obstacle"},{"x":700,"y":700,"width":200,"height":200,"type":"obstacle"},{"x":300,"y":1100,"width":200,"height":200,"type":"obstacle"},{"x":1100,"y":1100,"width":200,"height":200,"type":"obstacle"},{"x":700,"y":500,"width":50,"height":200,"type":"obstacle"},{"x":850,"y":900,"width":50,"height":200,"type":"obstacle"}],"blocks":[],"arena":{"width":1600,"height":1600}}')
 
-// const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":690,"y":600,"width":20,"height":200,"type":"obstacle"},{"x":600,"y":290,"width":200,"height":20,"type":"obstacle"},{"x":190,"y":400,"width":20,"height":200,"type":"obstacle"},{"x":920,"y":820,"width":160,"height":160,"type":"obstacle"},{"x":620,"y":1200,"width":160,"height":200,"type":"obstacle"},{"x":800,"y":190,"width":160,"height":160,"type":"obstacle"}],"blocks":[],"arena":{"width":1400,"height":1400}}')
-const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":600,"y":1200,"width":200,"height":200,"type":"obstacle"},{"x":0,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":600,"y":0,"width":200,"height":200,"type":"obstacle"},{"x":1200,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":650,"y":650,"width":100,"height":100,"type":"obstacle"}],"blocks":[],"arena":{"width":1400,"height":1400}}')
+const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":690,"y":600,"width":20,"height":200,"type":"obstacle"},{"x":600,"y":290,"width":200,"height":20,"type":"obstacle"},{"x":190,"y":400,"width":20,"height":200,"type":"obstacle"},{"x":920,"y":820,"width":160,"height":160,"type":"obstacle"},{"x":620,"y":1200,"width":160,"height":200,"type":"obstacle"},{"x":800,"y":190,"width":160,"height":160,"type":"obstacle"}],"blocks":[],"arena":{"width":1400,"height":1400}}')
+// const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":600,"y":1200,"width":200,"height":200,"type":"obstacle"},{"x":0,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":600,"y":0,"width":200,"height":200,"type":"obstacle"},{"x":1200,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":650,"y":650,"width":100,"height":100,"type":"obstacle"}],"blocks":[],"arena":{"width":1400,"height":1400}}')
 
 function darrowsToMata(string) {
 	const data = JSON.parse(string);
@@ -134,7 +135,7 @@ wss.on('connection', (socket, req) => {
 				console.log(players[clientId].name, data.chatMessage)
 			}
 			if (data.activate != undefined && players[clientId]) {
-				players[clientId].activate();
+				players[clientId].activate(players);
 			}
 			if (data.reloading != undefined && players[clientId]) {
 				players[clientId].reloading = Boolean(data.reloading);
@@ -148,6 +149,18 @@ wss.on('connection', (socket, req) => {
 					if (players[clientId].reloading && data.reloadTime != undefined) {
 						players[clientId].iTimer = data.reloadTime;
 					}
+				}
+				if (players[clientId].powers.includes('Accuracy Reload')) {
+					if (players[clientId].reloading && data.reloadTime != undefined) {
+						players[clientId].accurateNext = false;
+					} else if (players[clientId].reloading && data.reloadTime == undefined) {
+						// ^reloadTime as an identifier if player manually pressed R to reload
+						players[clientId].accurateNext = true;
+					}
+				}
+				if (players[clientId].powers.includes('Bended Barrel') && players[clientId].reloading) {
+					players[clientId].bending = false;
+					players[clientId].dataChange = true;
 				}
 				players[clientId].dataChange = true;
 			}
@@ -181,7 +194,11 @@ wss.on('connection', (socket, req) => {
 					// players[clientId].xv += Math.cos(players[clientId].angle)*recoil;
 					// players[clientId].yv += Math.sin(players[clientId].angle)*recoil;
 					let ogAngle = players[clientId].angle;
-					players[clientId].angle += err/360;
+					let errMult = 1;
+					if (players[clientId].powers.includes('Accuracy Reload') && players[clientId].accurateNext) {
+						errMult = 0;
+					}
+					players[clientId].angle += (err*errMult)/360;
 					if (players[clientId].weapon === 'Shotgun') {
 		                bullets[bId] = new Bullet(
 		                    bId,
@@ -322,6 +339,28 @@ wss.on('connection', (socket, req) => {
 						for (const bid of bIds) {
 							if (data.magz != undefined) {
 								bullets[bid].magz = true;
+							}
+							if (players[clientId].powers.includes('Bended Barrel') && players[clientId].bending && players[clientId]._bendCurve != undefined) {
+								// calculate curve factor eq
+								// dist = muzzle (or parent player center for now because lazy) and center of nearest player
+								// rot = angle of rotation of gun relative to player -180 to 180
+								// spd = bullet speed every tick (bullet.speed*(1/120))
+								// (rot*-2)/(((csc(rot) * dist/2)*rot*2)/ spd)
+								// bullets[bid].curveFactor = -(players[clientId].angle - players[clientId].bendCurveFactor) * (1/bullets[bid].life);
+								// bullets[bid].curveFactor = players[clientId].bendCurveFactor;
+								// bullets[bid].curveFactor = ( (2 * (bullets[bid].speed) * Math.sin(players[clientId]._bendCurve.rotation * Math.PI/180)) / players[clientId]._bendCurve.dist ) * 1.15
+								// bullets[bid].curveFactor = ((2 * bullets[bid].speed * Math.sin(players[clientId]._bendCurve.rotation * (Math.PI/180))) / players[clientId]._bendCurve.dist);
+								// csc = 1/sinx
+								const rot = players[clientId]._bendCurve.rotation * (Math.PI/180);
+								const dist = players[clientId]._bendCurve.dist;
+								const spd = bullets[bid].speed;
+								const csc = (x) => 1/Math.sin(x)
+								bullets[bid].curveFactor = -( (rot * -2) / (
+									( (csc(rot) * dist/2) * rot * 2 ) / spd
+								))
+								players[clientId]._bendCurve.factor = bullets[bid].curveFactor;
+								players[clientId].dataChange = true;
+								// console.log(bullets[bid].curveFactor, players[clientId]._bendCurve)
 							}
 						}
 		                for (const id of Object.keys(clients)) {

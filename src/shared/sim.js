@@ -9,11 +9,11 @@ if (!globalThis.onClient) {
 }
 // lol
 const Weapons = {
-	Pistol: { cooldown: 0.55, gunWidth: 4, gunHeight: 1.4, ammo: 12, reloadTime: 2, err: 10, color: '#000000', recoil: 2},
-	Shotgun: { cooldown: 1.2, gunWidth: 6, gunHeight: 2, ammo: 6, reloadTime: 3 , err: 5, color: '#611f04', recoil: 7},
-	Rifle: {cooldown: 1.4, gunWidth: 2.5, gunHeight: 2.7, ammo: 7, reloadTime: 2.25, err: 5, color: '#49004f', recoil: 0},
-	Burst: { cooldown: 1.1, gunWidth: 4, gunHeight: 2.4, ammo: 18, reloadTime: 2.75, err: 10, color: '#6e0400', recoil: 1},
-	SMG: { cooldown: 0.07, gunWidth: 3, gunHeight: 1.6, ammo: 24, reloadTime: 1.75, err: 45, color: '#090152'/*'#043f7a'*/, recoil: 0.5},
+	Pistol: { cooldown: 0.55, gunWidth: 4, gunHeight: 1.4, ammo: 12, reloadTime: 2, err: 20, color: '#000000', recoil: 2},
+	Shotgun: { cooldown: 1.2, gunWidth: 6, gunHeight: 2, ammo: 6, reloadTime: 3 , err: 10, color: '#611f04', recoil: 7},
+	Rifle: {cooldown: 1.6, gunWidth: 2.5, gunHeight: 2.7, ammo: 7, reloadTime: 2.25, err: 5, color: '#49004f', recoil: 0},
+	Burst: { cooldown: 1.1, gunWidth: 4, gunHeight: 2.4, ammo: 18, reloadTime: 2.75, err: 20, color: '#6e0400', recoil: 1},
+	SMG: { cooldown: 0.07, gunWidth: 3, gunHeight: 1.6, ammo: 24, reloadTime: /*1.75*/1.75, err: 40, color: '#090152'/*'#043f7a'*/, recoil: 0.5},
 	LMG: { cooldown: 0.13, gunWidth: 6.5, gunHeight: 2, ammo: 75, reloadTime: 4.5, err: 35, color: '#00332d', recoil: 0},
 }
 
@@ -48,15 +48,23 @@ const Powers = {
 		type: 'Passive',
 		desc: 'You gain 50 armor with this passive but your sprint duration is halved.',
 	},
-	'Bending Barrel': {
-		color: '#9900ff',
+	'Bended Barrel': {
+		color: '#8cff78',//'#9900ff',
 		type: 'Active',
-		desc: 'Upon activation, (NEIKRODENT WRITE THE DESC)',
+		desc: 'Upon activation, your bullets will curve to the nearest target. The curve will be fixed on new bullets and will only reset after you reload. [5s]',
+	},
+	'Accuracy Reload': {
+		color: 'blue',
+		type: 'Passive',
+		desc: 'Upon reloading with no ammo left, you will have enhanced accuracy on your next magazine. These reloads will take [2s] longer and your player will be indicated blue while you have enhanced accuracy.'
 	}
 }
 
+globalThis.gameSpeed = 1;
 
-function simPlayer(player, inputPayload, dt, players, arena, obstacles=[]) {
+
+function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
+	let dt = delta * global.gameSpeed;
     let _input = inputPayload.input;
     let _x = player.x;
     let _y = player.y;
