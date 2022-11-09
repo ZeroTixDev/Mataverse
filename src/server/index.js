@@ -2,7 +2,7 @@ const wss = require('./setupServer.js')();
 const Player = require('./player.js');
 const Bullet = require('./bullet.js');
 const msgpack = require('msgpack-lite');
-const { Weapons } = require('../shared/sim.js');
+const { Weapons, Powers } = require('../shared/sim.js');
 const Obstacle = require('./obstacle.js');
 const clients = {};
 const players = {};
@@ -85,8 +85,10 @@ wss.on('connection', (socket, req) => {
     const clientId = createId();
     clients[clientId] = socket;
     clients[clientId].menu = true;
+	// console.log(Powers)
     send(clientId, {
         playerCount: Object.keys(players).length,
+		powerMenu: Powers,
     });
     console.log('new client', clientId);
 

@@ -7,7 +7,9 @@
 body {
 /*     background: #002905; */
 /* 	background: #041e45; */
-	background: #363636;
+/* 	background: #363636; */
+	background: black;
+/* 	 background: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet, red); */
     font-family: Arial;
     font-size: 16px;
 /*     user-select: none; */
@@ -70,6 +72,7 @@ input {
     flex-direction: column;
     height: 100vh;
     width: 100vw;
+/* 	user-select: none; */
 /* 	background-image: url('./a.png');
 	background-image-repeat: none;
 	background-size: cover; */
@@ -92,8 +95,9 @@ input {
 }
 
 .player-count {
-    font-size: 1.25rem;
-    color: #ffffff;
+    font-size: 0.75rem;
+/*     color: #ffffff; */
+	color: white;
     -webkit-text-stroke-width: 0px;
     -webkit-text-stroke-color: black;
     margin: 50px;
@@ -105,7 +109,7 @@ input {
     font-size: 3rem;
     color: white;
 }
-.armor-div , .gun-div {
+.armor-div , .gun-div, .power-div {
     width: 100px;
     height: 100px;
     background: #0a0a0a;
@@ -117,7 +121,8 @@ input {
     margin-bottom: 25px;
 }
 
-.armor, .gun {
+
+.armor, .gun, .power {
     width: 75px;
     height: 75px;
     background: #757575;
@@ -130,9 +135,15 @@ input {
     cursor: pointer;
 }
 
+.power {
+	width: 75px;
+	height: 75px;
+}
+
 .gun {
 	width: 150px;
 	height: 75px;
+	transition: width 0.25s linear;
 }
 
 .gun-div {
@@ -187,8 +198,10 @@ input {
 }
 
 .a-select {
-    color: #141414;
-    background: #424242;
+	width: 250px;
+/* 	color:'gray' !important; */
+/*     color: #141414;
+    background: #424242; */
 }
 
 .smol {

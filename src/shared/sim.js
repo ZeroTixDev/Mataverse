@@ -34,7 +34,8 @@ const Powers = {
 		desc: 'Upon activation, you will charge for [1s] while losing 30 health and then lunge in the direction of your gun but lose all of your sprint. You need a full sprint bar for activation. This ability can kill you.',
 	},
 	'Quantum Field': {
-		color: '#ffffff',
+		color: '#ff4242',
+		// color: '#ffffff',
 		type: 'Active',
 		desc: 'Upon activation, you will create a quantum field at your position that lasts [5s]. Inside this quantum field, bullets can go through walls but bullets created inside a wall will be destroyed. [12s]'
 	},
@@ -44,7 +45,7 @@ const Powers = {
 		desc: 'Upon activation, your bullets will reverse their velocity and go in the opposite direction with 1.5x damage boost. The lifespan of the bullets are extended. [0.5s]',
 	},
 	'War Tank': {
-		color: '#545454',
+		color: '#ffe14d',
 		type: 'Passive',
 		desc: 'You gain 50 armor with this passive but your sprint duration is halved.',
 	},

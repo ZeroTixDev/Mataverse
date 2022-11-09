@@ -66,6 +66,7 @@ ws.onopen = () => {
     if (state === 'game') {
         send({ join: true, name: _joinData.name, armor: _joinData.armor, weapon: _joinData.weapon });
     }
+	
 };
 
 ws.onclose = () => {
@@ -81,9 +82,11 @@ const chatForm = document.querySelector('.chat-form')
 const chatInput = document.querySelector('.chat-input')
 const playerCountSpan = document.querySelector('.player-count');
 const armors = document.querySelectorAll('.armor');
-const weapons = document.querySelectorAll('.gun');
+// const weapons = document.querySelectorAll('.gun');
 const usernameInput = document.querySelector('.username-input');
 const usernameForm = document.querySelector('.username-form');
+const powerDiv = document.querySelector(".power-div")
+
 usernameInput.value = savedName;
 window.chatOpen = () => !chatContainer.classList.contains('hidden')
 function getArmorType() {
@@ -95,11 +98,14 @@ function getArmorType() {
     return 0;
 }
 function getWeaponType() {
+	const weapons = document.querySelectorAll('.gun');
 	for (const weapon of Array.from(weapons)) {
 		if (weapon.classList.contains('a-select')) {
+			console.log(weapon.getAttribute('data-type'))
 			return weapon.getAttribute('data-type')
 		}
 	}
+	console.log('returnig pistol', Array.from(weapons))
 	return 'Pistol'
 }
 usernameForm.addEventListener('submit', (e) => {
@@ -109,18 +115,7 @@ usernameForm.addEventListener('submit', (e) => {
 	let weapon = getWeaponType()
     enterGame(name, armor, weapon);
 });
-for (const weapon of Array.from(weapons)) {
-	weapon.addEventListener('mousedown', (e) => {
-		if (!weapon.classList.contains('a-select')) {
-			for (const w of Array.from(weapons)) {
-				if (w.classList.contains('a-select')) {
-					w.classList.remove('a-select')
-				}
-			}
-			weapon.classList.add('a-select')
-		}
-	})
-}
+
 for (const armor of Array.from(armors)) {
     armor.addEventListener('mousedown', (e) => {
         if (!armor.classList.contains('a-select')) {
@@ -426,6 +421,69 @@ let kName = '';
 let kAdj = '';
 let kArr = ['DESTROYED', 'MURDERED', 'EXECUTED', 'SLAUGHTERED', 'ERADICATED', 'ANNIHILATED', 'OBLITERATED', 'EXTINGUISHED', 'CRUSHED', 'SQUASHED', 'SMASHED']
 
+
+function hexToRGB(h) {
+  let r = 0, g = 0, b = 0;
+
+  // 3 digits
+  if (h.length == 4) {
+    r = "0x" + h[1] + h[1];
+    g = "0x" + h[2] + h[2];
+    b = "0x" + h[3] + h[3];
+
+  // 6 digits
+  } else if (h.length == 7) {
+    r = "0x" + h[1] + h[2];
+    g = "0x" + h[3] + h[4];
+    b = "0x" + h[5] + h[6];
+  }
+  return [r, g, b]
+}
+function RGBToHSL(r,g,b) {
+  // Make r, g, and b fractions of 1
+  r /= 255;
+  g /= 255;
+  b /= 255;
+
+  // Find greatest and smallest channel values
+  let cmin = Math.min(r,g,b),
+      cmax = Math.max(r,g,b),
+      delta = cmax - cmin,
+      h = 0,
+      s = 0,
+      l = 0;
+	 if (delta == 0)
+    h = 0;
+  // Red is max
+  else if (cmax == r)
+    h = ((g - b) / delta) % 6;
+  // Green is max
+  else if (cmax == g)
+    h = (b - r) / delta + 2;
+  // Blue is max
+  else
+    h = (r - g) / delta + 4;
+
+  h = Math.round(h * 60);
+    
+  // Make negative hues positive behind 360°
+  if (h < 0)
+      h += 360;
+l = (cmax + cmin) / 2;
+
+  // Calculate saturation
+  s = delta == 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+    
+  // Multiply l and s by 100
+  s = +(s * 100).toFixed(1);
+  l = +(l * 100).toFixed(1);
+	return [h, s, l]
+}
+function hexToHSL(h) {
+	const rgb = hexToRGB(h);
+	return RGBToHSL(rgb[0], rgb[1], rgb[2]);
+}
+
 async function handleMessage(event, lag = true) {
     if (!receive) return;
     if (lag && extraLag > 0) {
@@ -438,6 +496,49 @@ async function handleMessage(event, lag = true) {
     if (data.playerCount != undefined) {
         playerCountSpan.innerText = `(${data.playerCount} players online)`;
     }
+	if (data.powerMenu != undefined) {
+		console.log(data.powerMenu)
+		powerDiv.innerHTML = ''
+		powerDiv.style.width = 75 * Object.keys(data.powerMenu).length + 25 + 'px'
+		const powerNames = Object.keys(data.powerMenu)
+		powerNames.sort((a, b) => hexToHSL(data.powerMenu[a].color)[0] - hexToHSL(data.powerMenu[b].color)[0]);
+		// console.log(hexToHSL(Weapons[sortedWeapons[0]].color))
+		for (const powerName of powerNames) {
+			powerDiv.innerHTML += `
+		 		<span class="power" style="color: black;background: ${data.powerMenu[powerName].color} !important;">${powerName[0]}</span>`
+		}
+		let first = true;
+		const gunDiv = document.querySelector('.gun-div')
+		gunDiv.innerHTML = ''
+		const sortedWeapons = Object.keys(Weapons);
+		
+		for (const weaponName of sortedWeapons) {
+			if (weaponName == 'LMG') continue;
+			gunDiv.innerHTML += `
+   				 <span class="gun ${first ? 'a-select': ''}" data-type="${weaponName}" style="background: ${Weapons[weaponName].color}; color: white;">${weaponName[0]}<span class="smol">${weaponName.slice(1)}</span></span>
+			`;
+			first = false;
+		}
+		const guns = document.querySelectorAll('.gun');
+		for (const weapon of Array.from(guns)) {
+			weapon.addEventListener('mousedown', (e) => {
+				if (!weapon.classList.contains('a-select')) {
+					for (const w of Array.from(guns)) {
+						if (w.classList.contains('a-select')) {
+							w.classList.remove('a-select')
+						}
+					}
+					weapon.classList.add('a-select')
+					document.body.style.background = Weapons[weapon.getAttribute('data-type')].color;
+				}
+			})
+		}
+		// for (const weapon of Array.from(weapons)) {
+		// 	const gunName = weapon.getAttribute('data-type');
+		// 	weapon.style.background = Weapons[gunName].color;
+		// 	weapon.style.color = 'white';
+		// }
+	}
     if (state != 'game') return;
     if (data.hitDamage) {
         hitDamageActivate = true;
@@ -452,6 +553,7 @@ async function handleMessage(event, lag = true) {
 		}
         hits.push({ x: data.hitX, y: data.hitY, dmg: data.hitDamage, t: 0, server: true, uid: data.uid});
     }
+	
 	if (data.killed != undefined) {
 		kTimer = 3;
 		kName = data.killed;
@@ -1381,8 +1483,10 @@ function run() {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('Joining game...', canvas.width / 2, canvas.height / 2);
+		
         return;
     }
+	document.body.style.background = '#363636'
     me().interpAngle = me().angle;
     // camera.x = (me().x + me().isx)/2;
     // camera.y = (me().y + me().isy)/2;
@@ -1398,7 +1502,7 @@ function run() {
 	// ctx.fillStyle = '#1c3094'
 	// ctx.fillStyle = '#919191'
 	
-	ctx.fillStyle = '#757575'
+	ctx.fillStyle = '#919191'
 	// ctx.fillStyle = '#816f5a'
 	ctx.beginPath();
 	ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2)
@@ -1413,18 +1517,27 @@ function run() {
 	 // ability effects and stuff
 	
 
-	ctx.fillStyle = '#363636'
+	
+	
 	if (obstacles != undefined) {
 		for (const { x, y, w, h } of obstacles) {
+			ctx.lineWidth = 6;
+			ctx.fillStyle = '#363636'
+			// ctx.fillStyle = '#ffa340'
+			// ctx.strokeStyle = '#363636'
+			// if (w < 25 || h < 25) {
+			// 	ctx.fillStyle = '#91a7ff'
+			// }
 			const pos = offset(x, y);
 			ctx.fillRect(Math.round(pos.x) - 1, Math.round(pos.y) - 1, w + 2, h + 2);
+			// ctx.strokeRect(Math.round(pos.x) - 1, Math.round(pos.y) - 1, w + 2, h + 2);
 		}
 	}
 	for (const playerId of Object.keys(players)) {
 		const player = players[playerId];
 		if (player.powers.includes('Quantum Field')) {
 			if (!player._qf) continue;
-			ctx.fillStyle = 'white';
+			ctx.fillStyle = '#ffeded'
 			ctx.globalAlpha = 0.5 //- ((player._qf.t/5)*0.4);
 			ctx.beginPath();
 			ctx.arc(offsetX(player._qf.x), offsetY(player._qf.y), player._qf.r, 0, Math.PI * 2);

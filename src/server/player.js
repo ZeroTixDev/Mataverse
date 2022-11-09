@@ -18,6 +18,16 @@ const circleCircleContains = (p1x, p1y, r1, p2x, p2y, r2) => {
 	return false;
 }
 
+const objectsEqual = (o1, o2) => 
+    typeof o1 === 'object' && Object.keys(o1).length > 0 
+        ? Object.keys(o1).length === Object.keys(o2).length 
+            && Object.keys(o1).every(p => objectsEqual(o1[p], o2[p]))
+        : o1 === o2;
+
+const arraysEqual = (a1, a2) => 
+   a1.length === a2.length && a1.every((o, idx) => objectsEqual(o, a2[idx]));
+
+
 module.exports = class Player {
     constructor(id, { r }, name, armor, weapon='Pistol') {
         this.id = id;
@@ -681,30 +691,46 @@ module.exports = class Player {
 		const pack = this.pack();
 		const diffPack = { id: this.id };
 		for (const key of Object.keys(pack)) {
-			if (pack[key] == player[key] || this.dont_send_in_updates.includes(key)) {
+			let equal = false;
+			if (Array.isArray(pack[key])) {
+				if (arraysEqual(pack[key], player[key])) {
+					equal = true;
+				}
+			} else if (typeof pack[key] == 'object' && !Array.isArray(pack[key])) {
+				if (objectsEqual(pack[key], player[key])) {
+					equal = true;
+				}
+			} else if (pack[key] == player[key]) {
+				equal = true;
+			}
+			if (equal || this.dont_send_in_updates.includes(key)) {
+				// if (typeof pack[key] == 'object') {
+				// 	console.log(pack[key], player[key], key)
+				// }
 				continue;
 			}
 			diffPack[key] = pack[key];
 		}
-		// return diffPack;
-		return this.pack()
+		// console.log(diffPack)
+		return diffPack;
+		// return this.pack()
 	}
 	get dont_send_in_updates() {
 		return ['xv', 'yv']
 	}
     pack() {
         return {
-            x: this.x,
-            y: this.y,
+            x: Math.round(this.x),
+            y: Math.round(this.y),
             r: this.r,
             id: this.id,
             speed: this.speed,
             name: this.name,
             xv: this.xv,
             yv: this.yv,
-            armor: this.armor,
+            armor: Math.round(this.armor),
             angle: this.angle,
-            health: this.health,
+            health: Math.round(this.health),
             maxArmor: this.maxArmor,
             kills: this.kills,
 			shiftLength: this.shiftLength,
@@ -712,13 +738,13 @@ module.exports = class Player {
 			shiftRegenTimer: this.shiftRegenTimer, 
 			shiftRegenTime: this.shiftRegenTime,
 			chatMessage: this.chatMessage,
-			chatMessageTimer: this.chatMessageTimer,
+			chatMessageTimer: Math.round(this.chatMessageTimer),
 			shifting: this.shifting,
 			typing: this.typing,
 			weapon: this.weapon,
 			reloading: this.reloading,
 			totalDamage: this.totalDamage,
-			powers: this.powers,
+			powers: [...this.powers],
 			magz: this.magz,
 			invis: this.invis,
 			invisX: this.invisX,
@@ -727,9 +753,9 @@ module.exports = class Player {
 			activeCooldown: this.activeCooldown,
 			activeCooldownTimer: this.activeCooldownTimer,
 			accurateNext: this.accurateNext,
-			_qf: this._qf,
+			_qf: {...this._qf},
 			bending: this.bending,
-			_bendCurve: this._bendCurve,
+			_bendCurve: {...this._bendCurve},
 			// lastSentInput: this.lastSentInput,
 			// lastProcessedInputPayload: this.lastProcessedInputPayload,
         };
