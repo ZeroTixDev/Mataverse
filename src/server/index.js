@@ -42,7 +42,7 @@ function darrowsToMata(string) {
 		if (ob.type != undefined && ob.type != 'obstacle') continue;
 		obs.push(new Obstacle(ob.x + oX/2, ob.y + oY/2, ob.width, ob.height));
 	}
-	console.log(obs)
+	// console.log(obs)
 	return obs;
 } 
 
