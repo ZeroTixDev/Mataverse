@@ -1,4 +1,5 @@
-let ws = new WebSocket('wss://gungame.zerotixdev.repl.co');
+// let ws = new WebSocket('wss://gungame.zerotixdev.repl.co');
+let ws = new WebSocket(location.origin.replace(/^http/, 'ws'))
 ws.binaryType = 'arraybuffer'
 let connected = false;
 
