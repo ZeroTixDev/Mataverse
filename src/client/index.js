@@ -2424,6 +2424,24 @@ function playerUI() {
 	ctx.strokeStyle = 'black'
 	ctx.strokeRect(canvas.width /2 - 250, canvas.height - 30, 500, 25);
 
+	ctx.globalAlpha = 0.75
+	ctx.fillStyle = 'black';
+	// ctx.globalAlpha = 0.4;
+	ctx.fillRect(canvas.width /2 - 400, canvas.height - 60, 800, 15);
+	const len = Math.min((player.totalDamage/400), 1);
+	ctx.fillStyle = '#0077ff';
+	// ctx.globalAlpha = 0.
+	ctx.fillRect(canvas.width /2 - 400, canvas.height - 60, 800*len, 15);
+	// ctx.globalAlpha = 1;
+	ctx.strokeStyle = 'white';
+	ctx.lineWidth = 2;
+	ctx.globalAlpha = 1;
+	ctx.strokeRect(canvas.width /2 - 400, canvas.height - 60, 800, 15);
+	ctx.beginPath();
+	ctx.lineTo(canvas.width / 2, canvas.height - 60);
+	ctx.lineTo(canvas.width / 2, canvas.height - 45);
+	ctx.stroke()
+
 	ctx.fillStyle = '#292929'
 	ctx.globalAlpha = 0.75
 	ctx.fillRect(canvas.width - 300, canvas.height - 75, 300, 75);

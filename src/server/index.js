@@ -504,6 +504,18 @@ function ServerTick() {
                 });
 				if (players[bullet.parent] != undefined) {
 					players[bullet.parent].totalDamage += damage;
+					if (players[bullet.parent].totalDamage - damage < 200 && players[bullet.parent].totalDamage >= 200) {
+						// passive upgrade
+						let passives = ['Magz of War', 'Shadow Reload'];
+						players[bullet.parent].powers.push(passives[Math.floor(Math.random() * passives.length)]);
+						players[bullet.parent].dataChange = true;
+					}
+					if (players[bullet.parent].totalDamage - damage < 400 && players[bullet.parent].totalDamage >= 400) {
+						// active upgrade
+						let actives = ['Quantum Field', 'Bended Barrel'];
+						players[bullet.parent].powers.push(actives[Math.floor(Math.random() * actives.length)]);
+						players[bullet.parent].dataChange = true;
+					}
 				}
 				send(pK, {
 					gotHit: true,

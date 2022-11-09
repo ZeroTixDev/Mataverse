@@ -304,12 +304,12 @@ module.exports = class Player {
 	}
 	usePassives(powers=[]) {
 		console.log(this.powers)
-		if (this.powers.includes('War Tank')) {
-			console.log('tank works!')
-			this.armor = 50;
-			this.maxArmor = 50;
-			this.shiftLength /= 2;
-		}
+		// if (this.powers.includes('War Tank')) {
+		// 	console.log('tank works!')
+		// 	this.armor = 50;
+		// 	this.maxArmor = 50;
+		// 	this.shiftLength /= 2;
+		// }
 	}
 	changeTyping(typingState) {
 		if (typingState === true) {
