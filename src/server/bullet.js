@@ -89,8 +89,8 @@ module.exports = class Bullet {
     updatePack() {
         return {
             id: this.id,
-            x: this.x,
-            y: this.y,
+            x: Math.round(this.x),
+            y: Math.round(this.y),
 			angle: this.angle,
         };
     }

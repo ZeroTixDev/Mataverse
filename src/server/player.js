@@ -46,6 +46,11 @@ module.exports = class Player {
         this.input = { up: false, right: false, down: false, left: false, shift: false };
         this.changed = false;
 		this.totalDamage = 0;
+		this.bulletCooldown = Weapons[this.weapon].cooldown;
+		this.currentBulletCooldown = this.bulletCooldown;
+		this.ammo = Weapons[this.weapon].ammo;
+		// this.ammo = Weapons[]
+		this.mouseDown = false;
         this.name =
             name.length > 0
                 ? name
@@ -537,7 +542,9 @@ module.exports = class Player {
     simulate(dt, players, obstacles) {
         // let oldX = this.x;
         // let oldY = this.y;
-
+		this.currentBulletCooldown += dt;
+		this.currentBulletCooldown = Math.min(this.currentBulletCooldown, this.bulletCooldown);
+		
 		this.activeCooldownTimer += dt;
 		if (this.activeCooldownTimer >= this.activeCooldown) {
 			this.activeCooldownTimer = this.activeCooldown;
@@ -756,6 +763,8 @@ module.exports = class Player {
 			_qf: {...this._qf},
 			bending: this.bending,
 			_bendCurve: {...this._bendCurve},
+
+			
 			// lastSentInput: this.lastSentInput,
 			// lastProcessedInputPayload: this.lastProcessedInputPayload,
         };

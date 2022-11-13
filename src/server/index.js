@@ -132,6 +132,12 @@ wss.on('connection', (socket, req) => {
 	                }
 	            }
 	        }
+			if (data.mousedown != undefined && players[clientId]) {
+				players[clientId].mouseDown = true;
+			}
+			if (data.mouseup != undefined && players[clientId]) {
+				players[clientId].mouseDown = false;
+			}
 			if (data.chatMessage != undefined) {
 				players[clientId]?.sendChat(data.chatMessage)
 				console.log(players[clientId].name, data.chatMessage)
@@ -169,6 +175,7 @@ wss.on('connection', (socket, req) => {
 	        if (data.angle != undefined) {
 	            players[clientId].angle = data.angle;
 				players[clientId].dataChange = true;
+				// return;
 	            if (data.shoot != undefined) {
 					// if (players[clientId].lastShot != undefined) {
 					// 	const cooldown = players[clientId].weapon === 'Burst' ? 0.1: Weapons[players[clientId].weapon].cooldown
@@ -444,6 +451,207 @@ function ServerTick() {
     for (const playerId of Object.keys(players)) {
         const player = players[playerId];
         player.simulate(dt, players, obstacles);
+		continue;
+		let clientId = playerId;
+		let data = {}
+		if (player.mouseDown && player.currentBulletCooldown >= player.bulletCooldown) {
+			player.currentBulletCooldown = 0;
+			let dAngle = players[clientId].angle - Math.PI / 2;
+			let bId = `${createId()}b`;
+			let bIds = [];
+			bIds.push(bId)
+			const gunWidth = Weapons[players[clientId].weapon].gunWidth ?? 6;
+			const gunHeight = players[clientId].r * (Weapons[players[clientId].weapon].gunHeight ?? 2);
+			const err = Math.random() * ((Weapons[players[clientId].weapon].err ?? 0)*2) - (Weapons[players[clientId].weapon].err ?? 0);
+			const recoil = Weapons[players[clientId].weapon].recoil ?? 0;
+			data.cx = players[clientId].x +
+			Math.cos(dAngle) * (players[clientId].r - gunWidth) /*+ 2 + (players[clientId].armor / 100) * 13)*/ +  Math.cos(players[clientId].angle) * (gunHeight*1.5)
+			data.cy = players[clientId].y +
+			Math.sin(dAngle) * (players[clientId].r - gunWidth) /*+ 2 + (players[clientId].armor / 100) * 13)*/ +
+			Math.sin(players[clientId].angle) * (gunHeight*1.5);
+			// players[clientId].xv += Math.cos(players[clientId].angle)*recoil;
+			// players[clientId].yv += Math.sin(players[clientId].angle)*recoil;
+			let ogAngle = players[clientId].angle;
+			let errMult = 1;
+			if (players[clientId].powers.includes('Accuracy Reload') && players[clientId].accurateNext) {
+				errMult = 0;
+			}
+			players[clientId].angle += (err*errMult)/360;
+			if (players[clientId].weapon === 'Shotgun') {
+				bullets[bId] = new Bullet(
+					bId,
+					data.cx,
+					data.cy,
+					7,
+					players[clientId].angle,
+					clientId,
+					data.approxPing,
+					data.uid,
+					400,
+					0.6,
+				);
+				bId = `${createId()}b`;
+				bIds.push(bId)
+				bullets[bId] = new Bullet(
+					bId,
+					data.cx,
+					data.cy,
+					7,
+					players[clientId].angle - 0.1,
+					clientId,
+					data.approxPing,
+					data.uid - 1,
+					400,
+					0.6,
+				);
+				bId = `${createId()}b`;
+				bIds.push(bId)
+				bullets[bId] = new Bullet(
+					bId,
+					data.cx,
+					data.cy,
+					7,
+					players[clientId].angle + 0.1,
+					clientId,
+					data.approxPing,
+					data.uid + 1,
+					400,
+					0.6,
+				);
+				bId = `${createId()}b`;
+				bIds.push(bId)
+				bullets[bId] = new Bullet(
+					bId,
+					data.cx,
+					data.cy,
+					7,
+					players[clientId].angle - 0.1/2,
+					clientId,
+					data.approxPing,
+					data.uid - 2,
+					400,
+					0.6,
+				);
+				bId = `${createId()}b`;
+				bIds.push(bId)
+				bullets[bId] = new Bullet(
+					bId,
+					data.cx,
+					data.cy,
+					7,
+					players[clientId].angle + 0.1/2,
+					clientId,
+					data.approxPing,
+					data.uid + 2,
+					400,
+					0.6,
+				);
+			} else if (players[clientId].weapon === 'Pistol') {
+				bullets[bId] = new Bullet(
+					bId,
+					data.cx,
+					data.cy,
+					7.5,
+					players[clientId].angle,
+					clientId,
+					data.approxPing,
+					data.uid,
+					375,
+					1.2,
+				);
+			} else if (players[clientId].weapon === 'Rifle') {
+				bullets[bId] = new Bullet(
+					bId,
+					data.cx,
+					data.cy,
+					7,
+					players[clientId].angle,
+					clientId,
+					data.approxPing,
+					data.uid,
+					475,
+					1.5,
+				);
+			} else if (players[clientId].weapon === 'Burst') {
+				bullets[bId] = new Bullet(
+					bId,
+					data.cx,
+					data.cy,
+					6.5,
+					players[clientId].angle,
+					clientId,
+					data.approxPing,
+					data.uid,
+					375,
+					1,
+				)
+			} else if (players[clientId].weapon === 'SMG') {
+				bullets[bId] = new Bullet(
+					bId,
+					data.cx,
+					data.cy,
+					5,
+					players[clientId].angle,
+					clientId,
+					data.approxPing,
+					data.uid,
+					375,
+					0.6,
+				)
+			} else if (players[clientId].weapon === 'LMG') {
+				bullets[bId] = new Bullet(
+					bId,
+					data.cx,
+					data.cy,
+					7,
+					players[clientId].angle,
+					clientId,
+					data.approxPing,
+					data.uid,
+					325,
+					1.3,
+				)
+			}
+			players[clientId].angle = ogAngle;
+			if (bullets[bId] != undefined) {
+				for (const bid of bIds) {
+					if (data.magz != undefined) {
+						bullets[bid].magz = true;
+					}
+					if (players[clientId].powers.includes('Bended Barrel') && players[clientId].bending && players[clientId]._bendCurve != undefined) {
+						// calculate curve factor eq
+						// dist = muzzle (or parent player center for now because lazy) and center of nearest player
+						// rot = angle of rotation of gun relative to player -180 to 180
+						// spd = bullet speed every tick (bullet.speed*(1/120))
+						// (rot*-2)/(((csc(rot) * dist/2)*rot*2)/ spd)
+						// bullets[bid].curveFactor = -(players[clientId].angle - players[clientId].bendCurveFactor) * (1/bullets[bid].life);
+						// bullets[bid].curveFactor = players[clientId].bendCurveFactor;
+						// bullets[bid].curveFactor = ( (2 * (bullets[bid].speed) * Math.sin(players[clientId]._bendCurve.rotation * Math.PI/180)) / players[clientId]._bendCurve.dist ) * 1.15
+						// bullets[bid].curveFactor = ((2 * bullets[bid].speed * Math.sin(players[clientId]._bendCurve.rotation * (Math.PI/180))) / players[clientId]._bendCurve.dist);
+						// csc = 1/sinx
+						const rot = players[clientId]._bendCurve.rotation * (Math.PI/180);
+						const dist = players[clientId]._bendCurve.dist;
+						const spd = bullets[bid].speed;
+						const csc = (x) => 1/Math.sin(x)
+						bullets[bid].curveFactor = -( (rot * -2) / (
+							( (csc(rot) * dist/2) * rot * 2 ) / spd
+						))
+						players[clientId]._bendCurve.factor = bullets[bid].curveFactor;
+						players[clientId].dataChange = true;
+						// console.log(bullets[bid].curveFactor, players[clientId]._bendCurve)
+					}
+				}
+				for (const id of Object.keys(clients)) {
+					const client = clients[id];
+					if (client.menu) continue;
+					for (const bid of bIds) {
+						send(id, {
+							newBullet: bullets[bid].pack(),
+						});
+					}
+				}
+			}
+		}
     }
 
     // hit detection/collision/bullet-player
@@ -578,7 +786,9 @@ function ServerTick() {
         } else if (bullet.pChanged) {
             bulletPack.push(bullet.pack());
 			bullet.pChanged = false;
-        }
+        } else {
+			bulletPack.push(bullet.updatePack())
+		}
     }
     for (const id of bDel) {
         delete bullets[id];
@@ -587,7 +797,7 @@ function ServerTick() {
         for (const clientId of Object.keys(clients)) {
             send(clientId, { changePack, changeTick: globalTick, bulletPack });
         }
-    } else {
+    } else if (bulletPack.length > 0) {
         for (const clientId of Object.keys(clients)) {
             send(clientId, { bulletPack });
         }

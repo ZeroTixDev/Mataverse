@@ -138,6 +138,8 @@ input {
 .power {
 	width: 75px;
 	height: 75px;
+	opacity: 0.6;
+	cursor: default;
 }
 
 .gun {

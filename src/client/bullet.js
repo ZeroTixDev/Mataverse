@@ -27,6 +27,7 @@ class Bullet {
 		}
     }
     recordHist() {
+		return;
         this.hist.push({ x: this.x, y: this.y });
         if (this.hist.length > this.histLength) {
             this.hist.shift();

@@ -607,11 +607,12 @@ async function handleMessage(event, lag = true) {
             my = Math.round((e.pageY - bound.top) / canvScale);
 			const angle = Math.atan2(my-450, mx-800);
 			// me().angle = angle;
-			send({ angle })
+			send({ angle, mousedown: true })
             // me().angle = Math.atan2(my - 450, mx - 800);
         });
         window.addEventListener('mouseup', () => {
             mouseDown = false;
+			send({ mouseup: true })
         });
     }
     if (data.players != undefined) {
@@ -1347,6 +1348,11 @@ function update(dt) {
          cameraAngle -= 2 * Math.PI;
       }
       cameraAngle = lerp(cameraAngle, 0, dt * 15);
+		for (const bulletId of Object.keys(bullets)) {
+			const bullet = bullets[bulletId];
+			bullet.x = lerp(bullet.x, bullet.interpX, dt*40);
+			bullet.y = lerp(bullet.y, bullet.interpY, dt*40)
+		}
         for (const playerId of Object.keys(players)) {
             const player = players[playerId];
             // if (playerId == selfId) {
@@ -1425,10 +1431,10 @@ function update(dt) {
     // prediction
     for (const bulletId of Object.keys(bullets)) {
         const bullet = bullets[bulletId];
-        bullet.x += Math.cos(bullet.angle) * bullet.speed * dt * globalThis.gameSpeed;
-        bullet.y += Math.sin(bullet.angle) * bullet.speed * dt * globalThis.gameSpeed;
-		bullet.lifeTimer += dt * globalThis.gameSpeed;
-		bullet.angle += bullet.curveFactor * dt * globalThis.gameSpeed;
+  //       bullet.x += Math.cos(bullet.angle) * bullet.speed * dt * globalThis.gameSpeed;
+  //       bullet.y += Math.sin(bullet.angle) * bullet.speed * dt * globalThis.gameSpeed;
+		// bullet.lifeTimer += dt * globalThis.gameSpeed;
+		// bullet.angle += bullet.curveFactor * dt * globalThis.gameSpeed;
    //      if (bullet.pingTimer < bullet.totalPing) {
    //          let p = bullet.pingTimer;
    //          bullet.pingTimer += 7;
@@ -1443,19 +1449,19 @@ function update(dt) {
 		}
         // bullet.recordHist();
     }
-    for (let i = 0; i < fakeBullets.length; i++) {
-        let bullet = fakeBullets[i];
-		if (bullet.toDelete == undefined) {
-        	bullet.x += Math.cos(bullet.angle) * bullet.speed * dt;
-        	bullet.y += Math.sin(bullet.angle) * bullet.speed * dt;
-		}
-        bullet.lifeTimer += dt;
-        bullet.recordHist();
-        if (bullet.lifeTimer > bullet.life) {
-            fakeBullets.splice(i, 1);
-            i++;
-        }
-    }
+  //   for (let i = 0; i < fakeBullets.length; i++) {
+  //       let bullet = fakeBullets[i];
+		// if (bullet.toDelete == undefined) {
+  //       	// bullet.x += Math.cos(bullet.angle) * bullet.speed * dt;
+  //       	// bullet.y += Math.sin(bullet.angle) * bullet.speed * dt;
+		// }
+  //       bullet.lifeTimer += dt;
+  //       // bullet.recordHist();
+  //       if (bullet.lifeTimer > bullet.life) {
+  //           fakeBullets.splice(i, 1);
+  //           i++;
+  //       }
+  //   }
 
 	if (gotHitTimer < 0.3) {
 		gotHitTimer += dt;
