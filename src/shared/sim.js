@@ -135,6 +135,9 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 	            _y = p2y + (player2.r + player.r + 0.001) * (Math.sin(angle));
 				player2.x = _x - (player2.r + player.r + 0.001) * (Math.cos(angle));
 				player2.y = _y - (player2.r + player.r + 0.001) * (Math.sin(angle))
+				// player2.xv = -_xv/2;
+				// player2.yv = -_yv/2;
+				
 				// player2.xv = _xv;
 				// player2.yv = _yv;
 				// _xv += xv*0.005

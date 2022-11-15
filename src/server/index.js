@@ -772,8 +772,9 @@ function ServerTick() {
             if (player.dataChange) {
                 player.dataChange = false;
             }
-            changePack.push(player.diffPack(packedPlayers[playerId]));
+            // changePack.push(player.diffPack(packedPlayers[playerId]));
         }
+		changePack.push(player.pack())
 		packedPlayers[playerId] = player.pack()
     }
     const bulletPack = [];

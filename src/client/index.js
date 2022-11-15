@@ -1367,12 +1367,12 @@ function update(dt) {
             player.isx = lerp(
                 player.isx,
                 px,
-                dt * 30
+                dt * 20
             );
             player.isy = lerp(
                 player.isy,
                 py,
-                dt * 30
+                dt * 20
             );
             if (playerId == selfId) {
 				player.ix = player.x
@@ -1398,8 +1398,8 @@ function update(dt) {
                 // let idt = Math.min(((window.performance.now() - lastServerUpdate) / 1000) / (1/serverTickRate), 5)
                 // player.x = LerpNoClamp(player.x, player.interpX, idt);
                 // player.y = LerpNoClamp(player.y, player.interpY, idt);
-                player.x = lerp(player.x, player.interpX, dt * 30)
-                player.y = lerp(player.y, player.interpY, dt * 30);
+                player.x = lerp(player.x, player.interpX, dt * 20)
+                player.y = lerp(player.y, player.interpY, dt * 20);
                 // let idt = Math.min((window.performance.now() - lastServerUpdate) / 1000, 2);
 
                 // let dx = (player.interpX - player.lx) ?? 0;
@@ -1592,16 +1592,19 @@ function run() {
 		if (bullet.rev) {
 			ctx.fillStyle = Powers['Bullet Boomerang'].color;
 		}
-		ctx.translate(x, y);
-		ctx.rotate(bullet.angle);
-		ctx.fillRect(-bullet.r - 2.5, -bullet.r/3, bullet.r*2 + 5, bullet.r/(3/2));
-		if (bullet.magz) {
-			ctx.strokeStyle = 'black'
-			ctx.lineWidth = 1;
-			// ctx.strokeRect(-bullet.r - 2.5 + 1, -bullet.r/3 + 1, bullet.r*2 + 5 - 2, bullet.r/(3/2) - 2);
-		}
-		ctx.rotate(-bullet.angle);
-		ctx.translate(-x, -y)
+		ctx.beginPath();
+		ctx.arc(x, y, bullet.r, 0, Math.PI * 2);
+		ctx.fill()
+		// ctx.translate(x, y);
+		// ctx.rotate(bullet.angle);
+		// ctx.fillRect(-bullet.r - 2.5, -bullet.r/3, bullet.r*2 + 5, bullet.r/(3/2));
+		// if (bullet.magz) {
+		// 	ctx.strokeStyle = 'black'
+		// 	ctx.lineWidth = 1;
+		// 	// ctx.strokeRect(-bullet.r - 2.5 + 1, -bullet.r/3 + 1, bullet.r*2 + 5 - 2, bullet.r/(3/2) - 2);
+		// }
+		// ctx.rotate(-bullet.angle);
+		// ctx.translate(-x, -y)
 		ctx.globalAlpha = 1;
         // for (let i = bullet.hist.length - 1; i >= 0; i--) {
         //     let { x, y } = bullet.hist[i];
