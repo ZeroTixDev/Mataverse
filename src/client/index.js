@@ -644,6 +644,12 @@ async function handleMessage(event, lag = true) {
 			if (pack.y != undefined) {
             	players[pack.id].serverY = pack.y;
 			}
+			if (pack.xv != undefined) {
+				players[pack.id].xv = pack.xv
+			}
+			if (pack.yv != undefined) {
+				players[pack.id].yv = pack.yv;
+			}
 			if (pack.health != undefined) {
             	players[pack.id].health = pack.health;
 			}
@@ -667,6 +673,11 @@ async function handleMessage(event, lag = true) {
 			}
 			if (pack.currentShift != undefined) {
 				players[pack.id].currentShift = pack.currentShift;
+				// if (players[pack.id].currentShift <= 0) {
+				// 	input.shift = false;
+				// 	const payload = new InputPayload(currentTick, input);
+				// 	send({ input: payload.pack() })
+				// }
 			}
 			if (pack.totalDamage != undefined) {
 				players[pack.id].totalDamage = pack.totalDamage;
@@ -704,8 +715,26 @@ async function handleMessage(event, lag = true) {
 			if (pack._bendCurve != undefined) {
 				players[pack.id]._bendCurve = pack._bendCurve;
 			}
+			if (pack.denialAngle !== undefined) {
+				players[pack.id].denialAngle = pack.denialAngle;
+			}
+			if (pack.denialLength != undefined) {
+				players[pack.id].denialLength = pack.denialLength;
+			}
+			if (pack.denying != undefined) {
+				players[pack.id].denying = pack.denying;
+			}
+			if (pack.denied != undefined) {
+				players[pack.id].denied = pack.denied;
+			}
 			if (pack.bending != undefined) {
+				if (!players[pack.id].bending && pack.bending) {
+					// currentBulletCooldown -= 1;
+					me().reloading = true;
+					me().reloadTimer = me().reloadTime - (Weapons[me().weapon].cooldown/2);
+				}
 				players[pack.id].bending = pack.bending;
+				
 			}
         }
     }
@@ -1592,19 +1621,19 @@ function run() {
 		if (bullet.rev) {
 			ctx.fillStyle = Powers['Bullet Boomerang'].color;
 		}
-		ctx.beginPath();
-		ctx.arc(x, y, bullet.r, 0, Math.PI * 2);
-		ctx.fill()
-		// ctx.translate(x, y);
-		// ctx.rotate(bullet.angle);
-		// ctx.fillRect(-bullet.r - 2.5, -bullet.r/3, bullet.r*2 + 5, bullet.r/(3/2));
-		// if (bullet.magz) {
-		// 	ctx.strokeStyle = 'black'
-		// 	ctx.lineWidth = 1;
-		// 	// ctx.strokeRect(-bullet.r - 2.5 + 1, -bullet.r/3 + 1, bullet.r*2 + 5 - 2, bullet.r/(3/2) - 2);
-		// }
-		// ctx.rotate(-bullet.angle);
-		// ctx.translate(-x, -y)
+		// ctx.beginPath();
+		// ctx.arc(x, y, bullet.r, 0, Math.PI * 2);
+		// ctx.fill()
+		ctx.translate(x, y);
+		ctx.rotate(bullet.angle);
+		ctx.fillRect(-bullet.r - 2.5, -bullet.r/3, bullet.r*2 + 5, bullet.r/(3/2));
+		if (bullet.magz) {
+			ctx.strokeStyle = 'black'
+			ctx.lineWidth = 1;
+			// ctx.strokeRect(-bullet.r - 2.5 + 1, -bullet.r/3 + 1, bullet.r*2 + 5 - 2, bullet.r/(3/2) - 2);
+		}
+		ctx.rotate(-bullet.angle);
+		ctx.translate(-x, -y)
 		ctx.globalAlpha = 1;
         // for (let i = bullet.hist.length - 1; i >= 0; i--) {
         //     let { x, y } = bullet.hist[i];
@@ -1723,51 +1752,7 @@ function run() {
 	// }
 
 	// ABOVE PLAYER EFFECTS - bended barrel for now
-	for (const playerId of Object.keys(players)) {
-		const player = players[playerId]
-		let x = offsetX(player.x);
-        let y = offsetY(player.y);
-		// if (playerId == selfId && (window.performance.now() / 1000) - updatetimestamp > pThreshold) {
-		// 	let ostate = stateBuffer[currentTick - Math.ceil((Math.round(rrt)/1000) * serverTickRate)]
-		// 	x = offsetX(ostate.x);
-		// 	y = offsetY(ostate.y);
-		// } else 
-		if (playerId == selfId) {
-			x = offsetX(player.isx);
-			y = offsetY(player.isy);
-		}
-		if (player.powers.includes('Shadow Reload') && player.invis && playerId != selfId) {
-			x = offsetX(player.invisX);
-			y = offsetY(player.invisY);
-		}
-		// if (player.powers.includes('Bended Barrel') && playerId == selfId) {
-		// 	ctx.strokeStyle = player.bending ? '#d878ff' : Powers['Bended Barrel'].color;
-		// 	ctx.lineWidth = 5;
-		// 	ctx.lineCap = 'round'
-		// 	let bestId = null;
-		// 	let bestDist = Infinity;
-		// 	for (const pId of Object.keys(players)) {
-		// 		if (pId == player.id) continue;
-		// 		const p = players[pId];
-		// 		const distX = player.isx - p.x;
-		// 		const distY = player.isy - p.y;
-		// 		const dist = Math.sqrt(distX * distX + distY * distY);
-		// 		if (dist < bestDist) {
-		// 			bestDist = dist;
-		// 			bestId = pId;
-		// 		}
-		// 	}
-		// 	if (bestId != null) {
-		// 		const p = players[bestId];
-		// 		ctx.globalAlpha = player.bending ? 1: 0.2;
-		// 		ctx.beginPath();
-		// 		ctx.lineTo(x, y);
-		// 		ctx.lineTo(offsetX(p.isx ?? p.x), offsetY(p.isy ?? p.y));
-		// 		ctx.stroke()
-		// 		ctx.globalAlpha = 1;
-		// 	}
-		// }
-	}
+	
 	
     for (const playerId of Object.keys(players)) {
         // ctx.globalAlpha = 0.7;
@@ -2213,6 +2198,64 @@ function run() {
 		}
         // }
     }
+	for (const playerId of Object.keys(players)) {
+		const player = players[playerId]
+		let x = offsetX(player.x);
+        let y = offsetY(player.y);
+		// if (playerId == selfId && (window.performance.now() / 1000) - updatetimestamp > pThreshold) {
+		// 	let ostate = stateBuffer[currentTick - Math.ceil((Math.round(rrt)/1000) * serverTickRate)]
+		// 	x = offsetX(ostate.x);
+		// 	y = offsetY(ostate.y);
+		// } else 
+		if (playerId == selfId) {
+			x = offsetX(player.isx);
+			y = offsetY(player.isy);
+		}
+		if (player.powers.includes('Shadow Reload') && player.invis && playerId != selfId) {
+			x = offsetX(player.invisX);
+			y = offsetY(player.invisY);
+		}
+
+		if (player.powers.includes('Denial of Sprint') && player.denialAngle != null) {
+			ctx.globalAlpha = player.denying ? 0.9: 0.2;
+			ctx.strokeStyle = Powers['Denial of Sprint'].color;
+			ctx.lineWidth = 6;
+			// ctx.lineWidth = player.r*2;
+			// ctx.lineCap = 'round'
+			ctx.beginPath();
+			ctx.lineTo(x + Math.cos(player.denialAngle) * player.r, y + Math.sin(player.denialAngle) * player.r);
+			ctx.lineTo(x + Math.cos(player.denialAngle) * (player.r + player.denialLength), y + Math.sin(player.denialAngle) * (player.r + player.denialLength));
+			ctx.stroke()
+			ctx.globalAlpha = 1;
+		}
+		// if (player.powers.includes('Bended Barrel') && playerId == selfId) {
+		// 	ctx.strokeStyle = player.bending ? '#d878ff' : Powers['Bended Barrel'].color;
+		// 	ctx.lineWidth = 5;
+		// 	ctx.lineCap = 'round'
+		// 	let bestId = null;
+		// 	let bestDist = Infinity;
+		// 	for (const pId of Object.keys(players)) {
+		// 		if (pId == player.id) continue;
+		// 		const p = players[pId];
+		// 		const distX = player.isx - p.x;
+		// 		const distY = player.isy - p.y;
+		// 		const dist = Math.sqrt(distX * distX + distY * distY);
+		// 		if (dist < bestDist) {
+		// 			bestDist = dist;
+		// 			bestId = pId;
+		// 		}
+		// 	}
+		// 	if (bestId != null) {
+		// 		const p = players[bestId];
+		// 		ctx.globalAlpha = player.bending ? 1: 0.2;
+		// 		ctx.beginPath();
+		// 		ctx.lineTo(x, y);
+		// 		ctx.lineTo(offsetX(p.isx ?? p.x), offsetY(p.isy ?? p.y));
+		// 		ctx.stroke()
+		// 		ctx.globalAlpha = 1;
+		// 	}
+		// }
+	}
 
     for (const { x, y, server, t, dmg } of hits) {
         // ctx.fillStyle = server ? 'black': 'white';
@@ -2289,13 +2332,13 @@ function run() {
             fpsCount +
             'fps] [' +
             Object.keys(players).length +
-            ' players]') : '') ,
+            ' players]' + ` | (${Math.round(me().xv*100)/100}, ${Math.round(me().yv*100)/100})`) : '') ,
     	2,
         canvas.height - 8
     );
 	if (showServer) {
 		ctx.fillText('upstream: ' + (upstreamdisplay/1000).toFixed(2) + ' kb.s' +
-				' | downstream: ' + (downstreamdisplay/1000).toFixed(2) + ' kb/s', 10,
+				' | downstream: ' + (downstreamdisplay/1000).toFixed(2) + ' kb/s' + ` | (${me().xv}, ${me().yv})`, 10,
 					canvas.height - 40)
 	}
 	// ctx.textAlign = 'right';
@@ -2426,11 +2469,20 @@ function playerUI() {
 	// return;
 	const player = me();
 	ctx.fillStyle = '#7a7a7a';
+	if (me().denied || me().denying) {
+		ctx.fillStyle = '#5e391c'
+	}
 	ctx.fillRect(canvas.width /2 - 250, canvas.height - 30, 500, 25);
 	ctx.fillStyle = 'white';
+	if (me().denied || me().denying) {
+		ctx.fillStyle = '#ff5900'
+	}
 	ctx.fillRect(canvas.width /2 - 250, canvas.height - 30, 500 * (player.cshift/player.shiftLength), 25)
 	ctx.lineWidth = 3;
 	ctx.strokeStyle = 'black'
+	if (me().denied || me().denying) {
+		ctx.fillStyle = '#ff3300'
+	}
 	ctx.strokeRect(canvas.width /2 - 250, canvas.height - 30, 500, 25);
 
 	ctx.globalAlpha = 0.75

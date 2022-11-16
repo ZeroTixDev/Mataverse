@@ -15,6 +15,7 @@ let timer = 0;
 let globalTick = 0;
 const arena = { r: 700 };
 global.getBullets = () => bullets;
+let perfAmount = 0;
 // const obstacles = [
 // 	new Obstacle(250, 300, 400, 50),
 // 	new Obstacle(250, 700, 400, 50),
@@ -176,7 +177,7 @@ wss.on('connection', (socket, req) => {
 	            players[clientId].angle = data.angle;
 				players[clientId].dataChange = true;
 				// return;
-	            if (data.shoot != undefined) {
+	            if (data.shoot != undefined && players[clientId].bendCooldownTimer <= 0) {
 					// if (players[clientId].lastShot != undefined) {
 					// 	const cooldown = players[clientId].weapon === 'Burst' ? 0.1: Weapons[players[clientId].weapon].cooldown
 					// 	if ((Date.now() / 1000) - players[clientId].lastShot > cooldown + 1) {
@@ -429,6 +430,7 @@ setInterval(() => {
 let lastTime = Date.now();
 
 function ServerTick() {
+	let perfStart = Date.now()
     const dt = (Date.now() - lastTime) / 1000;
     lastTime = Date.now();
 
@@ -447,6 +449,8 @@ function ServerTick() {
         //     }
         // }
     }
+
+	
 
     for (const playerId of Object.keys(players)) {
         const player = players[playerId];
@@ -654,6 +658,10 @@ function ServerTick() {
 		}
     }
 
+	for (const playerId of Object.keys(players)) {
+		const player = players[playerId];
+		player.denied = (players[player.denyER]?.denying || player.denying) ?? false;
+	}
     // hit detection/collision/bullet-player
     for (const bK of Object.keys(bullets)) {
         const bullet = bullets[bK];
@@ -712,18 +720,18 @@ function ServerTick() {
                 });
 				if (players[bullet.parent] != undefined) {
 					players[bullet.parent].totalDamage += damage;
-					if (players[bullet.parent].totalDamage - damage < 200 && players[bullet.parent].totalDamage >= 200) {
-						// passive upgrade
-						let passives = ['Magz of War', 'Shadow Reload'];
-						players[bullet.parent].powers.push(passives[Math.floor(Math.random() * passives.length)]);
-						players[bullet.parent].dataChange = true;
-					}
-					if (players[bullet.parent].totalDamage - damage < 400 && players[bullet.parent].totalDamage >= 400) {
-						// active upgrade
-						let actives = ['Quantum Field', 'Bended Barrel'];
-						players[bullet.parent].powers.push(actives[Math.floor(Math.random() * actives.length)]);
-						players[bullet.parent].dataChange = true;
-					}
+					// if (players[bullet.parent].totalDamage - damage < 200 && players[bullet.parent].totalDamage >= 200) {
+					// 	// passive upgrade
+					// 	let passives = ['Magz of War', 'Shadow Reload'];
+					// 	players[bullet.parent].powers.push(passives[Math.floor(Math.random() * passives.length)]);
+					// 	players[bullet.parent].dataChange = true;
+					// }
+					// if (players[bullet.parent].totalDamage - damage < 400 && players[bullet.parent].totalDamage >= 400) {
+					// 	// active upgrade
+					// 	let actives = ['Quantum Field', 'Bended Barrel'];
+					// 	players[bullet.parent].powers.push(actives[Math.floor(Math.random() * actives.length)]);
+					// 	players[bullet.parent].dataChange = true;
+					// }
 				}
 				send(pK, {
 					gotHit: true,
@@ -803,4 +811,10 @@ function ServerTick() {
             send(clientId, { bulletPack });
         }
     }
+	perfAmount += (Date.now() - perfStart);
 }
+
+setInterval(() => {
+	console.log('took', perfAmount, 'ms');
+	perfAmount = 0;
+}, 1000);

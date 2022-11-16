@@ -58,6 +58,11 @@ const Powers = {
 		color: 'blue',
 		type: 'Passive',
 		desc: 'Upon reloading with no ammo left, you will have enhanced accuracy on your next magazine. These reloads will take [2s] longer and your player will be indicated blue while you have enhanced accuracy.'
+	},
+	'Denial of Sprint': {
+		color: '#ff5900',
+		type: 'Active',
+		desc: 'Upon activation, you will create a visible line in the direction of your gun. Opponents who touch this line cannot sprint or regenerate (same for you). The line lasts 4s max. [10s]'
 	}
 }
 
@@ -75,22 +80,36 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 	let _shiftRegenTimer = player.shiftRegenTimer;
     let armorDec = 1 - (player.maxArmor / 100) * 0.4;
     let speed = player.speed * armorDec;
-	_shiftRegenTimer += dt;
-	if (_shiftRegenTimer >= player.shiftRegenTime) {
-		_currentShift += dt*1.2;
-		_shiftRegenTimer = player.shiftRegenTime;
+	// console.log(player.denied)
+	if (player.denied) {
+		speed = speed * 0.5;
 	}
-	_currentShift = Math.min(_currentShift, player.shiftLength);
-	if (_input.shift && _currentShift > 0) {
-		_shiftRegenTimer = 0;
-		_currentShift -= dt*1.5;
-		_currentShift = Math.max(_currentShift, 0);
-		speed *= 1.5
+
+	_shiftRegenTimer += dt;
+		if (_shiftRegenTimer >= player.shiftRegenTime) {
+			_currentShift += dt*1.2;
+			_shiftRegenTimer = player.shiftRegenTime;
+		}
+		_currentShift = Math.min(_currentShift, player.shiftLength);
+	if (!player.denied && !player.denying) {
+		if (_input.shift && _currentShift > 0) {
+			_shiftRegenTimer = 0;
+			_currentShift -= dt*1.5;
+			_currentShift = Math.max(_currentShift, 0);
+			speed *= 1.5
+		}
 	}
     _xv += (_input.right - _input.left) * dt * speed;
     _yv += (_input.down - _input.up) * dt * speed;
     _xv *= 0.94;
-    _yv *= 0.94;
+    _yv *= 0.94
+	if (player.denying || player.denied) {
+		const speedLimit = 0.5;
+		player.xv = Math.min(player.xv, speedLimit);
+		player.yv = Math.min(player.yv, speedLimit);
+		_xv = Math.min(_xv, speedLimit);
+		_yv = Math.min(_yv, speedLimit)
+	}
     _x += player.xv;
     _y += player.yv;
     // if (!globalThis.onClient) {
@@ -148,7 +167,27 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 	            // _yv += yv * 15
 	        }
 	    }
-
+	// special effects - denial of sprint
+	player.denying = false;
+	if (player.powers.includes('Denial of Sprint') && player.denialAngle != null) {
+		for (const key of Object.keys(players)) {
+			const player2 = players[key];
+			if (player.id == player2.id) continue;
+			if (doesLineInterceptCircle(
+				{x: player.x + Math.cos(player.denialAngle) * player.r,
+				y: player.y + Math.sin(player.denialAngle) * player.r },
+				{x: player.x + Math.cos(player.denialAngle) * (player.r + player.denialLength),
+				y:player.y + Math.sin(player.denialAngle) * (player.r + player.denialLength)},
+				{x: player2.x, y: player2.y}, player2.r)) {
+				// _shiftRegenTimer = 0;
+				// player2.shiftRegenTimer = 0;
+				player.denying = true;
+				player2.denied = true;
+				player2.denyER = player.id;
+				
+			}
+		}
+	}
 	if (!globalThis.onClient) {
 		for (const ob of obstacles) {
 			const p = boundPlayerObstacle({x: _x, y: _y, xv: _xv, yv: _yv, r: player.r}, ob);
@@ -158,11 +197,39 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 			_yv = p.yv;
 		}
 	}
+	
 							
 	
 	// }
     return new StatePayload(inputPayload.tick, _x, _y, _xv, _yv, _currentShift, _shiftRegenTimer);
 }
+
+ function doesLineInterceptCircle(A, B, C, radius) {
+        let dist;
+        const v1x = B.x - A.x;
+        const v1y = B.y - A.y;
+        const v2x = C.x - A.x;
+        const v2y = C.y - A.y;
+        // get the unit distance along the line of the closest point to
+        // circle center
+        const u = (v2x * v1x + v2y * v1y) / (v1y * v1y + v1x * v1x);
+        
+        
+        // if the point is on the line segment get the distance squared
+        // from that point to the circle center
+        if(u >= 0 && u <= 1){
+            dist  = (A.x + v1x * u - C.x) ** 2 + (A.y + v1y * u - C.y) ** 2;
+        } else {
+            // if closest point not on the line segment
+            // use the unit distance to determine which end is closest
+            // and get dist square to circle
+            dist = u < 0 ?
+                  (A.x - C.x) ** 2 + (A.y - C.y) ** 2 :
+                  (B.x - C.x) ** 2 + (B.y - C.y) ** 2;
+        }
+        return dist < radius * radius;
+     }
+  
 
 function boundPlayerObstacle({x, y, xv, yv, r}, obstacle) {
 	// if (!globalThis.SAT) return;

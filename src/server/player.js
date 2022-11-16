@@ -124,6 +124,15 @@ module.exports = class Player {
 		this.bendCurveFactor = 0;
 		this._bendCurve = {};
 		this.bending = false;
+		this.bendCooldownTimer = 0;
+
+		// denial of sprint
+		this.denialAngle = null;
+		this.denialLength = 350;
+		this.denialTimer = Infinity;
+		this.denying = false;
+		this.denied = false;
+		this.denyER = null;
 
 		this.usePassives([])
 		// each ability has special properties
@@ -176,6 +185,13 @@ module.exports = class Player {
     } 
 	activate(players) {
 		// ability activation on space - sent from clietn
+		if (this.powers.includes('Denial of Sprint') && this.activeCooldownTimer >= this.activeCooldown) {
+			this.dataChange = true;
+			this.activeCooldown = 10;
+			this.activeCooldownTimer = 0;
+			this.denialAngle = this.angle;
+			this.denialTimer = 0;
+		}
 		if (this.powers.includes('Bended Barrel') && this.activeCooldownTimer >= this.activeCooldown) {
 			
 			// this.bendTimer = 3;
@@ -232,6 +248,7 @@ module.exports = class Player {
 				this._bendCurve.rotation = rotation;
 				this._bendCurve.dist = dist;
 				this.bending = true;
+				this.bendCooldownTimer = Weapons[this.weapon].cooldown/2;
 				this.activeCooldown = 5;
 				this.activeCooldownTimer = 0;
 				// this.bendCurveFactor = ((2 * ))	
@@ -429,7 +446,8 @@ module.exports = class Player {
 		)
 		this.stateBuffer[this.currentTick] = statePayload;
 		this.inputBuffer[this.currentTick] = inputPayload;
-		this.shifting = inputPayload.input.shift && this.stateBuffer[this.currentTick].currentShift > 0;
+		this.shifting = inputPayload.input.shift && this.stateBuffer[this.currentTick].currentShift > 0
+			&& !this.denied;
 		this.x = this.stateBuffer[this.currentTick].x;
 		this.y = this.stateBuffer[this.currentTick].y;
 		this.xv = this.stateBuffer[this.currentTick].xv;
@@ -558,6 +576,15 @@ module.exports = class Player {
 				this.dataChange = true;
 			}
 		}
+		this.denialTimer += dt;
+		if (this.denialTimer >= 0 && this.denialTimer < 4) {
+			this.denialLength = 450 //+ (this.denialTimer/2)*150;
+		}
+		if (this.denialTimer >= 4 && this.denialAngle != null) {
+			this.denialAngle = null;
+			this.denialTimer = Infinity;
+		}
+		this.bendCooldownTimer -= dt;
         this.timer += dt;
 		this.regenTimer += dt;
 		this.chatMessageTimer -= dt;
@@ -729,6 +756,8 @@ module.exports = class Player {
         return {
             x: Math.round(this.x),
             y: Math.round(this.y),
+			xv: this.xv,
+			yv: this.yv,
             r: this.r,
             id: this.id,
             speed: this.speed,
@@ -763,6 +792,10 @@ module.exports = class Player {
 			_qf: {...this._qf},
 			bending: this.bending,
 			_bendCurve: {...this._bendCurve},
+			denialAngle: this.denialAngle,
+			denialLength: this.denialLength,
+			denying: this.denying,
+			denied: this.denied,
 
 			
 			// lastSentInput: this.lastSentInput,
