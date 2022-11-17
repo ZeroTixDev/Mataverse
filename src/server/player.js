@@ -187,7 +187,7 @@ module.exports = class Player {
 		// ability activation on space - sent from clietn
 		if (this.powers.includes('Denial of Sprint') && this.activeCooldownTimer >= this.activeCooldown) {
 			this.dataChange = true;
-			this.activeCooldown = 10;
+			this.activeCooldown = 12;
 			this.activeCooldownTimer = 0;
 			this.denialAngle = this.angle;
 			this.denialTimer = 0;

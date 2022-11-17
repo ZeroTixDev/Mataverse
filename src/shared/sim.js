@@ -62,7 +62,7 @@ const Powers = {
 	'Denial of Sprint': {
 		color: '#ff5900',
 		type: 'Active',
-		desc: 'Upon activation, you will create a visible line in the direction of your gun. Opponents who touch this line cannot sprint or regenerate (same for you). The line lasts 4s max. [10s]'
+		desc: 'Upon activation, you will create a visible line in the direction of your gun. Opponents who touch this line cannot sprint or regenerate (same for you). The line lasts 4s max. [12s]'
 	}
 }
 
@@ -104,7 +104,7 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
     _xv *= 0.94;
     _yv *= 0.94
 	if (player.denying || player.denied) {
-		const speedLimit = 0.5;
+		const speedLimit = 0.8;
 		player.xv = Math.min(player.xv, speedLimit);
 		player.yv = Math.min(player.yv, speedLimit);
 		_xv = Math.min(_xv, speedLimit);
@@ -181,9 +181,14 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 				{x: player2.x, y: player2.y}, player2.r)) {
 				// _shiftRegenTimer = 0;
 				// player2.shiftRegenTimer = 0;
+				if (!player2.denied && player.activeCooldownTimer <= 0.5) { // first 0.5s of ability
+					player2.xv += _xv*1.5;
+					player2.yv += _yv*1.5;
+				}
 				player.denying = true;
 				player2.denied = true;
 				player2.denyER = player.id;
+				// if (player2.denie)
 				
 			}
 		}

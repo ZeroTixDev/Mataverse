@@ -1565,7 +1565,7 @@ function run() {
 			// 	ctx.fillStyle = '#91a7ff'
 			// }
 			const pos = offset(x, y);
-			ctx.fillRect(Math.round(pos.x) - 1, Math.round(pos.y) - 1, w + 2, h + 2);
+			ctx.fillRect(pos.x - 1,  pos.y - 1, w + 2, h + 2);
 			// ctx.strokeRect(Math.round(pos.x) - 1, Math.round(pos.y) - 1, w + 2, h + 2);
 		}
 	}
@@ -2217,15 +2217,17 @@ function run() {
 		}
 
 		if (player.powers.includes('Denial of Sprint') && player.denialAngle != null) {
-			ctx.globalAlpha = player.denying ? 0.9: 0.2;
+			ctx.globalAlpha = player.denying ? 1: 0.5;
 			ctx.strokeStyle = Powers['Denial of Sprint'].color;
-			ctx.lineWidth = 6;
+			ctx.lineWidth = 4;
 			// ctx.lineWidth = player.r*2;
 			// ctx.lineCap = 'round'
+			ctx.setLineDash([15, 15])
 			ctx.beginPath();
 			ctx.lineTo(x + Math.cos(player.denialAngle) * player.r, y + Math.sin(player.denialAngle) * player.r);
 			ctx.lineTo(x + Math.cos(player.denialAngle) * (player.r + player.denialLength), y + Math.sin(player.denialAngle) * (player.r + player.denialLength));
 			ctx.stroke()
+			ctx.setLineDash([])
 			ctx.globalAlpha = 1;
 		}
 		// if (player.powers.includes('Bended Barrel') && playerId == selfId) {
