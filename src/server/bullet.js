@@ -14,6 +14,7 @@ module.exports = class Bullet {
 		this.curveFactor = 0;
         this.uid = uid;
         this.parent = parent;
+		this.fromParent = parent;
         // this.ping = approx / 1000;
         // this.totalPing = this.ping * 1000;
 		this.totalPing = 0;
@@ -92,6 +93,7 @@ module.exports = class Bullet {
             x: Math.round(this.x),
             y: Math.round(this.y),
 			angle: this.angle,
+			lifeTimer: this.lifeTimer,
         };
     }
     pack() {

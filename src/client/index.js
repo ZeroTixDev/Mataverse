@@ -353,7 +353,7 @@ function equalState(state1, state2) {
 }
 
 function topPlayers() {
-	return Object.keys(players).sort((a, b) => players[b].totalDamage - players[a].totalDamage).map((id) => players[id]);
+	return Object.keys(players).sort((a, b) => players[b].kills - players[a].kills).map((id) => players[id]);
 }
 
 window.serverGlobalTick = 0;
@@ -720,6 +720,9 @@ async function handleMessage(event, lag = true) {
 			}
 			if (pack.denialLength != undefined) {
 				players[pack.id].denialLength = pack.denialLength;
+			}
+			if (pack.reflecting != undefined) {
+				players[pack.id].reflecting = pack.reflecting;
 			}
 			if (pack.denying != undefined) {
 				players[pack.id].denying = pack.denying;
@@ -1845,6 +1848,18 @@ function run() {
         ctx.beginPath();
         ctx.arc(x, y, player.r - ctx.lineWidth/2 + 1, 0, Math.PI * 2);
         ctx.stroke();
+
+		if (player.powers.includes('Reflective Reload') && player.reflecting) {
+			ctx.lineWidth = 5;
+			ctx.strokeStyle = Powers['Reflective Reload'].color;
+			ctx.translate(x, y);
+			ctx.rotate(player.angle);
+			ctx.beginPath()
+			ctx.arc(0, 0, player.r, -Math.PI/2, Math.PI/2);
+			ctx.stroke()
+			ctx.rotate(-player.angle);
+			ctx.translate(-x, -y)
+		}
         // ctx.fillStyle = '#303030';
 		ctx.fillStyle = 'black'
 
@@ -2415,7 +2430,7 @@ function run() {
 			ctx.fillStyle = 'white'
 		}
 		// [${kills}] (${dmg})
-		ctx.fillText(`${name} [${kills}-${dmg}]`, canvas.width - 125, y);
+		ctx.fillText(`${name} [${kills}]`, canvas.width - 125, y);
 		y += 30;
 		number++;
 	}

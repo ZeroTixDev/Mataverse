@@ -134,6 +134,10 @@ module.exports = class Player {
 		this.denied = false;
 		this.denyER = null;
 
+		// reflective reload
+		this.reflectTimer = 0;
+		this.reflecting = false;
+
 		this.usePassives([])
 		// each ability has special properties
 		// and since each player could have all abilities
@@ -562,7 +566,11 @@ module.exports = class Player {
         // let oldY = this.y;
 		this.currentBulletCooldown += dt;
 		this.currentBulletCooldown = Math.min(this.currentBulletCooldown, this.bulletCooldown);
-		
+
+		this.reflectTimer += dt;
+		if (this.reflectTimer >= 1.5) {
+			this.reflecting = false;
+		}
 		this.activeCooldownTimer += dt;
 		if (this.activeCooldownTimer >= this.activeCooldown) {
 			this.activeCooldownTimer = this.activeCooldown;
@@ -602,7 +610,7 @@ module.exports = class Player {
 		if (this.lTimer <= 0) {
 			this.xv = Math.cos(this.angle) * 40;
 			this.yv = Math.sin(this.angle) * 40;
-			this.currentShift = 0;
+			this.currentShift = 0;		
 			this.shiftRegenTimer = 0;
 			this.lCharge = false;
 			this.dataChange = true;
@@ -796,6 +804,7 @@ module.exports = class Player {
 			denialLength: this.denialLength,
 			denying: this.denying,
 			denied: this.denied,
+			reflecting: this.reflecting,
 
 			
 			// lastSentInput: this.lastSentInput,

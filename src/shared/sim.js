@@ -63,6 +63,11 @@ const Powers = {
 		color: '#ff5900',
 		type: 'Active',
 		desc: 'Upon activation, you will create a visible line in the direction of your gun. Opponents who touch this line cannot sprint or regenerate (same for you). The line lasts 4s max. [12s]'
+	},
+	'Reflective Reload': {
+		color: '#fff01f',
+		type: 'Passive',
+		desc: 'Upon reloading with no ammo left, you will parry any bullets that hit you from the front side for the next 1.5s. Parried bullets will be reflected in your gun direction.',
 	}
 }
 
@@ -104,7 +109,7 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
     _xv *= 0.94;
     _yv *= 0.94
 	if (player.denying || player.denied) {
-		const speedLimit = 0.8;
+		const speedLimit = 1;
 		player.xv = Math.min(player.xv, speedLimit);
 		player.yv = Math.min(player.yv, speedLimit);
 		_xv = Math.min(_xv, speedLimit);

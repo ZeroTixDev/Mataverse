@@ -84,6 +84,7 @@ function send(id, data) {
 
 wss.on('connection', (socket, req) => {
     const clientId = createId();
+	socket.binaryType = 'arraybuffer'
     clients[clientId] = socket;
     clients[clientId].menu = true;
 	// console.log(Powers)
@@ -98,7 +99,7 @@ wss.on('connection', (socket, req) => {
 			let data;
 			try { 
 	        	// data = JSON.parse(msg);
-				data = msgpack.decode(msg)
+				data = msgpack.decode(new Uint8Array(msg))
 			} catch(err) {
 				throw new Error('INVALID DATA')
 				console.log(err)
@@ -170,6 +171,10 @@ wss.on('connection', (socket, req) => {
 				if (players[clientId].powers.includes('Bended Barrel') && players[clientId].reloading) {
 					players[clientId].bending = false;
 					players[clientId].dataChange = true;
+				}
+				if (players[clientId].powers.includes('Reflective Reload') && players[clientId].reloading) {
+					players[clientId].reflecting = true;
+					players[clientId].reflectTimer = 0;
 				}
 				players[clientId].dataChange = true;
 			}
@@ -405,6 +410,9 @@ wss.on('connection', (socket, req) => {
     });
 
     socket.on('close', (event) => {
+		console.log(
+			`player [${players[clientId]?.name}] disconnect: code ${event}`
+		);
         delete clients[clientId];
         delete players[clientId];
         for (const id of Object.keys(clients)) {
@@ -412,6 +420,7 @@ wss.on('connection', (socket, req) => {
                 removePlayer: clientId,
             });
         }
+		 
     });
 });
 
@@ -683,26 +692,37 @@ function ServerTick() {
                 distX * distX + distY * distY <
                 (player.r + bullet.r) * (player.r + bullet.r)
             ) {
+				if (player.powers.includes('Reflective Reload') && player.reflecting) {
+					const angle = Math.atan2(player.y - bullet.y, player.x - bullet.x);// bullet to player
+					// console.log(angle, player.angle)
+					if (angle < player.angle - Math.PI/2 || angle > player.angle + Math.PI/2) {
+						// console.log('successfculyl reflected')
+						bullet.angle = player.angle;
+						bullet.parent = player.id;
+						bullet.lifeTimer = 0;
+						continue;
+					}
+				}
 				// player.xv += Math.cos(bullet.angle)*10;
 				// player.yv += Math.sin(bullet.angle)*10
 				let damage;
-				if (players[bullet.parent] == undefined) {
+				if (players[bullet.fromParent] == undefined) {
 					damage = 0
-				} else if (players[bullet.parent].weapon === 'Shotgun') {
+				} else if (players[bullet.fromParent].weapon === 'Shotgun') {
 					damage = Math.round(5 + 11 * (1-(bullet.lifeTimer / bullet.life)))
-				} else if (players[bullet.parent].weapon === 'Pistol') {
+				} else if (players[bullet.fromParent].weapon === 'Pistol') {
 					damage = 30
 					// damage = Math.round(30 + 8 * (1-(bullet.lifeTimer/bullet.life)));
-				} else if (players[bullet.parent].weapon === 'Rifle') {
+				} else if (players[bullet.fromParent].weapon === 'Rifle') {
 					damage = 70
 					// damage = Math.round(65 + 10* (1-(bullet.lifeTimer/bullet.life)));
-				} else if (players[bullet.parent].weapon === 'Burst') {
+				} else if (players[bullet.fromParent].weapon === 'Burst') {
 					damage = 30
 					// damage = Math.round(20 + 10 * (1-(bullet.lifeTimer/bullet.life)));
-				} else if (players[bullet.parent].weapon === 'SMG') {
+				} else if (players[bullet.fromParent].weapon === 'SMG') {
 					damage = Math.round(7 + 2 * ((bullet.lifeTimer/bullet.life)));
 					// damage = Math.round(3 + 3 * (1-(bullet.lifeTimer/bullet.life)));
-				} else if (players[bullet.parent].weapon === 'LMG') {
+				} else if (players[bullet.fromParent].weapon === 'LMG') {
 					damage = Math.round(8 + 4 * (1-(bullet.lifeTimer/bullet.life)));
 				}
 				let mult = 1;
@@ -815,6 +835,6 @@ function ServerTick() {
 }
 
 setInterval(() => {
-	console.log('took', perfAmount, 'ms');
+	// console.log('took', perfAmount, 'ms');
 	perfAmount = 0;
 }, 1000);
