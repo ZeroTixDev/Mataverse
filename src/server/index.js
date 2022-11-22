@@ -294,7 +294,7 @@ wss.on('connection', (socket, req) => {
 		                    data.approxPing,
 		                    data.uid,
 							375,
-							1.2,
+							0.9,
 		                );
 					} else if (players[clientId].weapon === 'Rifle') {
 						bullets[bId] = new Bullet(
@@ -307,7 +307,7 @@ wss.on('connection', (socket, req) => {
 		                    data.approxPing,
 		                    data.uid,
 							475,
-							1.5,
+							1.2,
 		                );
 					} else if (players[clientId].weapon === 'Burst') {
 						bullets[bId] = new Bullet(
@@ -424,7 +424,7 @@ wss.on('connection', (socket, req) => {
     });
 });
 
-setInterval(ServerTick, 1000 / sendRate);
+setInterval(ServerTick, Math.round(1000 / sendRate));
 
 setInterval(() => {
     // menu player updates

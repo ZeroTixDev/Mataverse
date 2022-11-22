@@ -187,6 +187,15 @@ module.exports = class Player {
     // has that been done?
     // because error correction codes are easier to send
     } 
+	muzzle() {
+		let dAngle = this.angle - Math.PI / 2;
+		const gunWidth = Weapons[this.weapon].gunWidth ?? 6;
+		const gunHeight = this.r * (Weapons[this.weapon].gunHeight ?? 2);
+		return {
+			x: this.x + Math.cos(dAngle) * (this.r - gunWidth) + Math.cos(this.angle) * (gunHeight * 1.5),
+			y: this.y + Math.sin(dAngle) * (this.r - gunWidth) + Math.sin(this.angle) * (gunHeight * 1.5)
+		}
+	}
 	activate(players) {
 		// ability activation on space - sent from clietn
 		if (this.powers.includes('Denial of Sprint') && this.activeCooldownTimer >= this.activeCooldown) {
@@ -205,10 +214,10 @@ module.exports = class Player {
 			for (const pId of Object.keys(players)) {
 				if (pId == this.id) continue;
 				const player = players[pId];
-				const distX = this.x - player.x;
-				const distY = this.y - player.y;
+				const distX = this.muzzle().x - player.x;
+				const distY = this.muzzle().y - player.y;
 				const dist = Math.sqrt(distX * distX + distY * distY);
-				if (dist < bestDist) {
+				if (dist < bestDist && dist > 50 && dist < 750) {
 					bestDist = dist;
 					bestId = pId;
 				}

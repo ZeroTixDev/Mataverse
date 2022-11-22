@@ -26,6 +26,7 @@ class Player {
         this.ix = this.x;
         this.iy = this.y;
 		this.cshift = this.currentShift;
+		this.hp = this.health;
         this.interpAngle = this.angle;
 		this.serverAngle = this.angle;
         if (this.id !== selfId) {

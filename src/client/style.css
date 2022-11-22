@@ -9,6 +9,7 @@ body {
 /* 	background: #041e45; */
 /* 	background: #363636; */
 	background: black;
+	transition: background 0.2s linear;
 /* 	 background: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet, red); */
     font-family: Arial;
     font-size: 16px;
@@ -140,7 +141,14 @@ input {
 	height: 75px;
 	opacity: 0.6;
 	cursor: default;
+	transition: opacity 0.05s linear;
 }
+
+.power:hover {
+	opacity: 1;
+}
+
+
 
 .gun {
 	width: 150px;
