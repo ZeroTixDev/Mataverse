@@ -1621,7 +1621,9 @@ function run() {
 			ctx.fillStyle = '#071eb0'
 		}
 		if (Math.abs(bullet.curveFactor) > 0) {
-			ctx.fillStyle = '#51ff33'//'#d878ff'
+			// ctx.fillStyle = '#1d631f'//'#d878ff'
+			ctx.fillStyle = Powers['Bended Barrel'].color;
+			
 		}
 		if (bullet.rev) {
 			ctx.fillStyle = Powers['Bullet Boomerang'].color;
@@ -1636,6 +1638,12 @@ function run() {
 			ctx.strokeStyle = 'black'
 			ctx.lineWidth = 1;
 			// ctx.strokeRect(-bullet.r - 2.5 + 1, -bullet.r/3 + 1, bullet.r*2 + 5 - 2, bullet.r/(3/2) - 2);
+		}
+		if (Math.abs(bullet.curveFactor) > 0) {
+			ctx.strokeStyle = 'black'
+			let s = 1.75
+			ctx.lineWidth = s;
+			ctx.strokeRect(-bullet.r - 2.5 - s/4, -bullet.r/3 - s/4, bullet.r*2 + 5 + s/2, bullet.r/(3/2) + s/2)
 		}
 		ctx.rotate(-bullet.angle);
 		ctx.translate(-x, -y)
@@ -1971,7 +1979,7 @@ function run() {
 			ctx.fillStyle = 'red'
 		}
 		if (player.bending) {
-			ctx.fillStyle = Powers['Bended Barrel'].color//'#d878ff'
+			// ctx.fillStyle = Powers['Bended Barrel'].color//'#d878ff'
 		}
 	// ctx.fillStyle = '#303030'
 		const gunWidth = Weapons[player.weapon].gunWidth ?? 6;
@@ -2000,6 +2008,27 @@ function run() {
 	            gunWidth*2,
 	            gunHeight * 1.5 * mult,
 	        );
+
+			if (player.bending) {
+				ctx.strokeStyle = ctx.fillStyle;
+				ctx.fillStyle = Powers['Bended Barrel'].color;
+				ctx.globalAlpha = Math.min(mult+0.5, 1);
+				ctx.fillRect(
+	         	   player.r/*+ 2 + (player.armor / 100) * 13*/ - gunWidth*2,
+		            gunHeight*1.5/3 + gunHeight*1.5/3 + cmult*5 - 5,
+		            gunWidth*2,
+		            (gunHeight*1.5/3),
+		        );
+				ctx.lineWidth = 2;
+				ctx.strokeRect(
+	         	   player.r/*+ 2 + (player.armor / 100) * 13*/ - gunWidth*2,
+		            gunHeight*1.5/3 + gunHeight*1.5/3 + cmult*5 - 5,
+		            gunWidth*2,
+		            (gunHeight*1.5/3) ,
+		        );
+				ctx.globalAlpha = 1;
+			}
+			
 			// if (player.powers.includes('Magz of War')) {
 				// if () {
 					// ctx.strokeStyle = 'white';
@@ -2019,7 +2048,7 @@ function run() {
 				ctx.fillStyle = 'red'
 			}
 			if (player.bending) {
-				ctx.fillStyle = Powers['Bended Barrel'].color;//'#d878ff'
+				// ctx.fillStyle = '#24ff00'//Powers['Bended Barrel'].color;//'#d878ff'
 			}
 			if (playerId == selfId) {
 				ctx.rotate(-(currentAngle - Math.PI / 2))
