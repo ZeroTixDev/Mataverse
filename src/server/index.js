@@ -319,8 +319,8 @@ wss.on('connection', (socket, req) => {
 							clientId,
 							data.approxPing,
 							data.uid,
-							375,
-							1,
+							350,
+							1.15,
 						)
 					} else if (players[clientId].weapon === 'SMG') {
 						bullets[bId] = new Bullet(

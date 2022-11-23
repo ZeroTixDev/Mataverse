@@ -49,6 +49,9 @@ module.exports = class Player {
 		this.bulletCooldown = Weapons[this.weapon].cooldown;
 		this.currentBulletCooldown = this.bulletCooldown;
 		this.ammo = Weapons[this.weapon].ammo;
+
+		this.passiveUpgrade = true;
+		this.activeUpgrade = true;
 		// this.ammo = Weapons[]
 		this.mouseDown = false;
         this.name =
@@ -325,9 +328,10 @@ module.exports = class Player {
 		if (text.startsWith('/power')) {
 			const power = text.split('/power ')[1]
 			console.log(power)
-			if (Powers[power]) {
+			if (Powers[power] && this.powers.length < 2) {
 				// this.usePassives(powers);
 				this.powers.push(power)
+				const type = Powers[power].type;
 				this.usePassives(powers);
 				this.dataChange = true;
 				return;
@@ -814,6 +818,8 @@ module.exports = class Player {
 			denying: this.denying,
 			denied: this.denied,
 			reflecting: this.reflecting,
+			passiveUpgrade: this.passiveUpgrade,
+			activeUpgrade: this.activeUpgrade,
 
 			
 			// lastSentInput: this.lastSentInput,

@@ -87,7 +87,7 @@ const armors = document.querySelectorAll('.armor');
 const usernameInput = document.querySelector('.username-input');
 const usernameForm = document.querySelector('.username-form');
 const powerDiv = document.querySelector(".power-div")
-
+usernameInput.focus()
 usernameInput.value = savedName;
 window.chatOpen = () => !chatContainer.classList.contains('hidden')
 function getArmorType() {
@@ -133,6 +133,10 @@ for (const armor of Array.from(armors)) {
 let canvScale = 1;
 const canvas = document.querySelector('.canvas');
 const ctx = canvas.getContext('2d');
+const powerCanvas = document.createElement('canvas');
+const pctx = powerCanvas.getContext('2d');
+powerCanvas.width = 50;
+powerCanvas.height = 50;
 resize([canvas]);
 window.onresize = () => resize([canvas]);
 
@@ -732,6 +736,12 @@ async function handleMessage(event, lag = true) {
 			}
 			if (pack.denied != undefined) {
 				players[pack.id].denied = pack.denied;
+			}
+			if (pack.passiveUpgrade != undefined) {
+				players[pack.id].passiveUpgrade = pack.passiveUpgrade;
+			}
+			if (pack.activeUpgrade != undefined) {
+				players[pack.id].activeUpgrade = pack.activeUpgrade;
 			}
 			if (pack.bending != undefined) {
 				if (!players[pack.id].bending && pack.bending) {
@@ -2134,7 +2144,7 @@ function run() {
 			// ctx.fillText(Math.round(player._bendCurve.rotation), x + Math.cos(rotation) * player.r, y + Math.sin(rotation) * player.r)
 			// ctx.fill()
 			if (player._bendCurve.factor != undefined) {
-				player.name = player._bendCurve.factor;
+				// player.name = player._bendCurve.factor;
 			}
 		}
 		ctx.fillStyle = Weapons[player.weapon].color ?? 'black';
@@ -2558,6 +2568,11 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
 function playerUI() {
 	// return;
 	const player = me();
+	ctx.fillStyle = '#292929'
+	ctx.globalAlpha = 0.75
+	ctx.fillRect(canvas.width /2 - 225, canvas.height - 52, 450, 52);
+	ctx.globalAlpha = 1;
+	
 	ctx.fillStyle = '#7a7a7a';
 	if (me().denied || me().denying) {
 		ctx.fillStyle = '#5e391c'
@@ -2605,10 +2620,7 @@ function playerUI() {
 	// ctx.lineTo(canvas.width / 2, canvas.height - 45);
 	// ctx.stroke()
 
-	ctx.fillStyle = '#292929'
-	ctx.globalAlpha = 0.75
-	ctx.fillRect(canvas.width - 300, canvas.height - 75, 300, 75);
-	ctx.globalAlpha = 1;
+
 	ctx.fillStyle = '#b0b0b0';
 	const powers = me().powers;
 	ctx.textAlign = 'center';
@@ -2617,92 +2629,188 @@ function playerUI() {
 	// 4 -> 100px for each  25px padding 
 	if (powers[0] != undefined) {
 		ctx.fillStyle = Powers[powers[0]].color;
+		ctx.fillRect(canvas.width/2 - 175 - 50, canvas.height - 50, 50, 50);
+		ctx.strokeStyle = 'black';
+		ctx.lineWidth = 3;
+		ctx.strokeRect(canvas.width/2 - 175 - 50, canvas.height - 50, 50, 50);
+	} else if (me().passiveUpgrade) {
+		// ctx.fillStyle = 'yellow'//Powers[powers[0]].color;
+		// ctx.fillRect(canvas.width/2 - 175 - 50, canvas.height - 50, 50, 50);
+		ctx.fillStyle = 'yellow';
+		ctx.font = '25px Work Sans';
+		ctx.fillText('UP', canvas.width / 2 - 175 - 50 + 50/2, canvas.height -50/2)
+
+		if (rectContainsPoint(canvas.width/ 2- 175 - 50 , canvas.height - 50, 50, 50, window.mx, window.my)) {
+			const passives = Object.keys(Powers).filter((k) => Powers[k].type == 'Passive');
+			ctx.font = '20px Work Sans'
+			ctx.fillStyle = 'black'
+			let string = '- ';
+			passives.forEach((name) => {
+				string += name + ' - ';
+			});
+			// string.length -= 3;
+			ctx.fillText(`${string}`, canvas.width/2 - 175 - 50 + 50/2, canvas.height - 75)
+		}
+		// ctx.lineWidth = 3;
+		// ctx.strokeRect(canvas.width/2 - 175 - 50, canvas.height - 50, 50, 50);
 	}
-	ctx.fillRect(canvas.width - 300 + 25/2, canvas.height - 75 + 25/2, 50, 50);
+	
 	if (powers[0] && Powers[powers[0]].type === 'Active') {
-		ctx.fillRect(canvas.width - 300 + 25/2, canvas.height - 75 + 25/2 - 25, 50*(1 - me().activeCooldownTimer/me().activeCooldown), 25/2)
+		pctx.clearRect(0, 0, powerCanvas.width, powerCanvas.height);
+		pctx.fillStyle = 'black';
+		pctx.globalAlpha = 0.5;
+		// pctx.fillRect(25 - 25 * cooldown, 25 - 25 *cooldown, 50*cooldown, 50*cooldown);
+		pctx.beginPath();
+		pctx.lineTo(25, 25);
+		let cooldown = me().activeCooldownTimer / me().activeCooldown;
+		if (cooldown === 1) {
+			cooldown = 0;
+		}
+		pctx.arc(25, 25, 50, Math.PI * 2 * (Math.max(cooldown, 0)), 0);
+		pctx.fill();
+		pctx.globalAlpha = 1;
+		ctx.drawImage(powerCanvas, canvas.width / 2 - 175 - 50, canvas.height - 50, 50, 50)
+		// ctx.fillRect(canvas.width/2 - 175 - 50, canvas.height - 50 - 25/2 - 10, 50*(1 - me().activeCooldownTimer/me().activeCooldown), 25/2)
 	}
 	ctx.fillStyle = '#292929';
 	if (powers[0] != undefined) {
-		if (rectContainsPoint(canvas.width - 300 + 25/2 , canvas.height - 75+ 25/2, 50, 50, window.mx, window.my)) {
-			ctx.globalAlpha = 0.9;
-			ctx.fillRect(canvas.width - 450 + 25/2, canvas.height - 300 + 25/2, 350, 200);
+		if (rectContainsPoint(canvas.width/ 2- 175 - 50 , canvas.height - 50, 50, 50, window.mx, window.my)) {
+			ctx.globalAlpha = 0.85;
+			ctx.fillRect(canvas.width/ 2 - 175 - 50 - 175, canvas.height - 250, 400, 200);
 			ctx.globalAlpha = 1;
+			ctx.strokeStyle = 'black';
+			ctx.lineWidth = 3;
+			ctx.strokeRect(canvas.width/ 2 - 175 - 50 - 175, canvas.height - 250, 400, 200);
 			ctx.fillStyle = Powers[powers[0]].color;
 			ctx.font = '25px Work Sans'
-			ctx.fillText(powers[0], canvas.width - 400 + 25/2 + 250/2, canvas.height - 300 + 25/2 + 25)
+			ctx.fillStyle = Powers[powers[0]].color;
+			ctx.fillText(powers[0], canvas.width / 2 - 175 - 50 + 50/2, canvas.height - 250 + 25)
+	
 			ctx.font = '20px Work Sans'
-			ctx.fillText(`[${Powers[powers[0]].type}]`, canvas.width - 400 + 25/2 + 250/2, canvas.height - 200 + 25/2 + 100 - 20)
+			ctx.fillText(`[${Powers[powers[0]].type}]`, canvas.width/2 - 175 - 50 + 50/2, canvas.height - 75)
 			ctx.fillStyle = 'white';
-			ctx.font = '16px Work Sans';
-			wrapText(ctx, Powers[powers[0]].desc, canvas.width - 450 + 25/2 + 350/2, canvas.height - 300 + 25/2 + 50 + 25/4, 325, 25);
+			ctx.font = '15px Work Sans';
+			wrapText(ctx, Powers[powers[0]].desc, canvas.width/2 - 175 - 50/2, canvas.height - 250 + 50 + 25/5, 375, 25);
 		}
 	}
+	
 	ctx.fillStyle = '#b0b0b0';
 	if (powers[1] != undefined) {
 		ctx.fillStyle = Powers[powers[1]].color;
+		ctx.fillRect(canvas.width/2 + 175, canvas.height - 50, 50, 50);
+		ctx.strokeStyle = 'black';
+		ctx.lineWidth = 3;
+		ctx.strokeRect(canvas.width/2 + 175, canvas.height - 50, 50, 50);
+	} else if (me().activeUpgrade) {
+		ctx.fillStyle = 'yellow';
+		ctx.font = '25px Work Sans';
+		ctx.fillText('UP', canvas.width / 2 + 175 + 50/2, canvas.height -50/2)
+		if (rectContainsPoint(canvas.width/ 2 + 175 , canvas.height - 50, 50, 50, window.mx, window.my)) {
+			const actives = Object.keys(Powers).filter((k) => Powers[k].type == 'Active');
+			ctx.font = '20px Work Sans'
+			ctx.fillStyle = 'black'
+			let string = '- ';
+			actives.forEach((name) => {
+				string += name + ' - ';
+			});
+			// string.length -= 3;
+			ctx.fillText(`${string}`, canvas.width/2 +175 + 50/2, canvas.height - 75)
+		}
 	}
-	ctx.fillRect(canvas.width - 225 + 25/2, canvas.height - 75 + 25/2, 50, 50);
+	// ctx.fillRect(canvas.width - 225 + 25/2, canvas.height - 75 + 25/2, 50, 50);
+	
 	if (powers[1] && Powers[powers[1]].type === 'Active') {
-		ctx.fillRect(canvas.width - 225 + 25/2, canvas.height - 75 + 25/2 - 25, 50*(1 - me().activeCooldownTimer/me().activeCooldown), 25/2)
+		pctx.clearRect(0, 0, powerCanvas.width, powerCanvas.height);
+		pctx.fillStyle = 'black';
+		pctx.globalAlpha = 0.5;
+		// pctx.fillRect(25 - 25 * cooldown, 25 - 25 *cooldown, 50*cooldown, 50*cooldown);
+		pctx.beginPath();
+		pctx.lineTo(25, 25);
+		let cooldown = me().activeCooldownTimer / me().activeCooldown;
+		if (cooldown === 1) {
+			cooldown = 0;
+		}
+		pctx.arc(25, 25, 50, Math.PI * 2 * (Math.max(cooldown, 0)), 0);
+		pctx.fill();
+		pctx.globalAlpha = 1;
+		ctx.drawImage(powerCanvas, canvas.width / 2 + 175, canvas.height - 50, 50, 50)
+		// ctx.fillRect(canvas.width - 225 + 25/2, canvas.height - 75 + 25/2 - 25, 50*(1 - me().activeCooldownTimer/me().activeCooldown), 25/2)
 	}
 	ctx.fillStyle = '#292929';
 	if (powers[1] != undefined) {
-		if (rectContainsPoint(canvas.width - 300 + 25/2 + 75 , canvas.height - 75+ 25/2, 50, 50, window.mx, window.my)) {
-			ctx.globalAlpha = 0.9;
-			ctx.fillRect(canvas.width - 450 + 25/2 + 75, canvas.height - 300 + 25/2, 350, 200);
+		if (rectContainsPoint(canvas.width/ 2 + 175 , canvas.height - 50, 50, 50, window.mx, window.my)) {
+			ctx.globalAlpha = 0.85;
+			ctx.fillRect(canvas.width/ 2 + 175 - 175, canvas.height - 250, 400, 200);
 			ctx.globalAlpha = 1;
+			ctx.strokeStyle = 'black';
+			ctx.lineWidth = 3;
+			ctx.strokeRect(canvas.width/ 2 +175 - 175, canvas.height - 250, 400, 200);
 			ctx.fillStyle = Powers[powers[1]].color;
 			ctx.font = '25px Work Sans'
-			ctx.fillText(powers[1], canvas.width - 400 + 25/2 + 250/2 + 75, canvas.height - 300 + 25/2 + 25)
+			ctx.fillStyle = Powers[powers[1]].color;
+			ctx.fillText(powers[1], canvas.width / 2 +175 + 50/2, canvas.height - 250 + 25)
+	
 			ctx.font = '20px Work Sans'
-			ctx.fillText(`[${Powers[powers[1]].type}]`, canvas.width - 400 + 75 + 25/2 + 250/2, canvas.height - 200 + 25/2 + 100 - 20)
+			ctx.fillText(`[${Powers[powers[1]].type}]`, canvas.width/2 +175 + 50/2, canvas.height - 75)
 			ctx.fillStyle = 'white';
-			ctx.font = '16px Work Sans';
-			wrapText(ctx, Powers[powers[1]].desc, canvas.width - 450 + 75 + 25/2 + 350/2, canvas.height - 300 + 25/2 + 50 + 25/4, 325, 25);
+			ctx.font = '15px Work Sans';
+			wrapText(ctx, Powers[powers[1]].desc, canvas.width/2 +175+50/2, canvas.height - 250 + 50 + 25/5, 375, 25);
 		}
+		// if (rectContainsPoint(canvas.width - 300 + 25/2 + 75 , canvas.height - 75+ 25/2, 50, 50, window.mx, window.my)) {
+		// 	ctx.globalAlpha = 0.9;
+		// 	ctx.fillRect(canvas.width - 450 + 25/2 + 75, canvas.height - 300 + 25/2, 350, 200);
+		// 	ctx.globalAlpha = 1;
+		// 	ctx.fillStyle = Powers[powers[1]].color;
+		// 	ctx.font = '25px Work Sans'
+		// 	ctx.fillText(powers[1], canvas.width - 400 + 25/2 + 250/2 + 75, canvas.height - 300 + 25/2 + 25)
+		// 	ctx.font = '20px Work Sans'
+		// 	ctx.fillText(`[${Powers[powers[1]].type}]`, canvas.width - 400 + 75 + 25/2 + 250/2, canvas.height - 200 + 25/2 + 100 - 20)
+		// 	ctx.fillStyle = 'white';
+		// 	ctx.font = '16px Work Sans';
+		// 	wrapText(ctx, Powers[powers[1]].desc, canvas.width - 450 + 75 + 25/2 + 350/2, canvas.height - 300 + 25/2 + 50 + 25/4, 325, 25);
+		// }
 	}
-	ctx.fillStyle = '#b0b0b0'
-	if (powers[2] != undefined) {
-		ctx.fillStyle = Powers[powers[2]].color;
-	}
-	ctx.fillRect(canvas.width - 150 + 25/2, canvas.height - 75 + 25/2, 50, 50);
-	if (powers[2] && Powers[powers[2]].type === 'Active') {
-		ctx.fillRect(canvas.width - 150 + 25/2, canvas.height - 75 + 25/2 - 25, 50*(1 - me().activeCooldownTimer/me().activeCooldown), 25/2)
-	}
-	ctx.fillStyle = '#292929';
-	if (powers[2] != undefined) {
-		if (rectContainsPoint(canvas.width - 300 + 25/2 + 150 , canvas.height - 75+ 25/2, 50, 50, window.mx, window.my)) {
-			ctx.globalAlpha = 0.9;
-			ctx.fillRect(canvas.width - 450 + 25/2 + 75, canvas.height - 300 + 25/2, 350, 200);
-			ctx.globalAlpha = 1;
-			ctx.fillStyle = Powers[powers[2]].color;
-			ctx.font = '25px Work Sans'
-			ctx.fillText(powers[2], canvas.width - 400 + 25/2 + 250/2 + 75, canvas.height - 300 + 25/2 + 25)
-			ctx.font = '20px Work Sans'
-			ctx.fillText(`[${Powers[powers[2]].type}]`, canvas.width - 400 + 75 + 25/2 + 250/2, canvas.height - 200 + 25/2 + 100 - 20)
-			ctx.fillStyle = 'white';
-			ctx.font = '16px Work Sans';
-			wrapText(ctx, Powers[powers[2]].desc, canvas.width - 450 + 75 + 25/2 + 350/2, canvas.height - 300 + 25/2 + 50 + 25/4, 325, 25);
-		}
-	}
-	ctx.fillStyle = '#b0b0b0'
-	ctx.fillRect(canvas.width - 75 + 25/2, canvas.height - 75 + 25/2, 50, 50);
+	// ctx.fillStyle = '#b0b0b0'
+	// if (powers[2] != undefined) {
+	// 	ctx.fillStyle = Powers[powers[2]].color;
+	// }
+	// ctx.fillRect(canvas.width - 150 + 25/2, canvas.height - 75 + 25/2, 50, 50);
+	// if (powers[2] && Powers[powers[2]].type === 'Active') {
+	// 	ctx.fillRect(canvas.width - 150 + 25/2, canvas.height - 75 + 25/2 - 25, 50*(1 - me().activeCooldownTimer/me().activeCooldown), 25/2)
+	// }
+	// ctx.fillStyle = '#292929';
+	// if (powers[2] != undefined) {
+	// 	if (rectContainsPoint(canvas.width - 300 + 25/2 + 150 , canvas.height - 75+ 25/2, 50, 50, window.mx, window.my)) {
+	// 		ctx.globalAlpha = 0.9;
+	// 		ctx.fillRect(canvas.width - 450 + 25/2 + 75, canvas.height - 300 + 25/2, 350, 200);
+	// 		ctx.globalAlpha = 1;
+	// 		ctx.fillStyle = Powers[powers[2]].color;
+	// 		ctx.font = '25px Work Sans'
+	// 		ctx.fillText(powers[2], canvas.width - 400 + 25/2 + 250/2 + 75, canvas.height - 300 + 25/2 + 25)
+	// 		ctx.font = '20px Work Sans'
+	// 		ctx.fillText(`[${Powers[powers[2]].type}]`, canvas.width - 400 + 75 + 25/2 + 250/2, canvas.height - 200 + 25/2 + 100 - 20)
+	// 		ctx.fillStyle = 'white';
+	// 		ctx.font = '16px Work Sans';
+	// 		wrapText(ctx, Powers[powers[2]].desc, canvas.width - 450 + 75 + 25/2 + 350/2, canvas.height - 300 + 25/2 + 50 + 25/4, 325, 25);
+	// 	}
+	// }
+	// ctx.fillStyle = '#b0b0b0'
+	// ctx.fillRect(canvas.width - 75 + 25/2, canvas.height - 75 + 25/2, 50, 50);
 	ctx.fillStyle = 'black';
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
 	ctx.font = '40px Work Sans'
 
 	
-	if (powers[0] != undefined) {
-		ctx.fillText(powers[0][0], canvas.width - 300 + 25/2 + 25, canvas.height - 75/2);
+	if (powers[0] != undefined ) {
+		ctx.fillText(powers[0][0], canvas.width /2 - 175 - 50 + 50/2, canvas.height - 52/2);
 	}
 	if (powers[1] != undefined) {
-		ctx.fillText(powers[1][0], canvas.width - 300 + 25/2 + 25 + 75, canvas.height - 75/2);
+		ctx.fillText(powers[1][0], canvas.width /2  +175 + 50/2, canvas.height - 52/2);
 	}
-	if (powers[2] != undefined) {
-		ctx.fillText(powers[2][0], canvas.width - 300 + 25/2 + 25 + 150, canvas.height - 75/2);
-	}
+	// if (powers[2] != undefined) {
+	// 	ctx.fillText(powers[2][0], canvas.width - 300 + 25/2 + 25 + 150, canvas.height - 75/2);
+	// }
 
       // background of health and armor bar
       // ctx.fillStyle = 'rgba(20, 20, 20, 0.7)';
