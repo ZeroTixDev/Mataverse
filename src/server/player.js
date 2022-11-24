@@ -42,7 +42,9 @@ module.exports = class Player {
         this.xv = 0;
         this.yv = 0;
 		this.weapon = weapon;
-        this.speed = 11//30//75; //55;
+		// burst only
+		this.burstTally = 2; // (because its module 3)
+        this.speed = 10//30//75; //55;
         this.input = { up: false, right: false, down: false, left: false, shift: false };
         this.changed = false;
 		this.totalDamage = 0;
@@ -323,6 +325,13 @@ module.exports = class Player {
 			}
 		}
 	}
+	addPower(name) {
+		if (Powers[name].type === 'Active' && this.powers.length === 0) {
+			this.powers = [undefined, name];
+		} else {
+			this.powers.push(name);
+		}
+	}
 	sendChat(text) {
 		let powers = [...this.powers]
 		if (text.startsWith('/power')) {
@@ -330,12 +339,18 @@ module.exports = class Player {
 			console.log(power)
 			if (Powers[power] && this.powers.length < 2) {
 				// this.usePassives(powers);
-				this.powers.push(power)
+				this.addPower(power)
 				const type = Powers[power].type;
-				this.usePassives(powers);
+				// this.usePassives(powers);
 				this.dataChange = true;
 				return;
 			}
+		}
+		if (text.startsWith('/rp')) {
+			this.powers = [];
+			this.passiveUpgrade = true;
+			this.activeUpgrade = true;
+			return;
 		}
 		this.chatMessage = text;
 		this.chatMessageTimer = this.chatMessageTime;

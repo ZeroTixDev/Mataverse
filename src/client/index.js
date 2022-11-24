@@ -32,6 +32,9 @@ let cameraAngle = 0;
 const bullets = {};
 let state = 'menu';
 
+let showPassives = false;
+let showActives = false;
+
 let playerData = {x:0, y:0, r: 0}; // for tetsitng
 
 const music = new Audio();
@@ -48,10 +51,19 @@ if (muted) {
 }
 let savedName = localStorage.getItem('name') ?? '';
 
+window.onload = () => {
+	// if (localStorage.getItem('lastGun')) {
+	// 	document.body.style.background = Weapons[localStorage.getItem('lastGun')].color;
+	// } else {
+	// 	document.body.style.background = Weapons['Rifle'].color;
+	// }
+}
+
 function enterGame(name, armor, weapon) {
     state = 'game';
     window._joinData = { name, armor, weapon };
     localStorage.setItem('name', _joinData.name);
+	localStorage.setItem('lastGun', weapon);
     document.querySelector('.menu').classList.add('hidden');
     document.querySelector('.game').classList.remove('hidden');
     // document.querySelector('.game').requestFullscreen();
@@ -516,11 +528,11 @@ async function handleMessage(event, lag = true) {
 		const gunDiv = document.querySelector('.gun-div')
 		gunDiv.innerHTML = ''
 		const sortedWeapons = Object.keys(Weapons);
-		
+		let lastGun = localStorage.getItem('lastGun') ?? 'Rifle';
 		for (const weaponName of sortedWeapons) {
 			if (weaponName == 'LMG') continue;
 			gunDiv.innerHTML += `
-   				 <span class="gun ${weaponName === 'Rifle' ? 'a-select': ''}" data-type="${weaponName}" style="background: ${Weapons[weaponName].color}; color: white;">${weaponName[0]}<span class="smol">${weaponName.slice(1)}</span></span>
+   				 <span class="gun ${weaponName === lastGun ? 'a-select': ''}" data-type="${weaponName}" style="background: ${Weapons[weaponName].color}; color: white;">${weaponName[0]}<span class="smol">${weaponName.slice(1)}</span></span>
 			`;
 			first = false;
 		}
@@ -613,8 +625,108 @@ async function handleMessage(event, lag = true) {
             mx = Math.round((e.pageX - bound.left) / canvScale);
             my = Math.round((e.pageY - bound.top) / canvScale);
 			const angle = Math.atan2(my-450, mx-800);
+			if (rectContainsPoint(canvas.width/ 2 + 175, canvas.height - 50, 50, 50, window.mx, window.my)) {
+				showActives = true;
+				mouseDown = false;
+			} else {
+				if (showActives) {
+					const actives = Object.keys(Powers).filter(k => Powers[k].type == 'Active');
+					let width = 0;
+					actives.forEach((name) => {
+						width += 75;
+						// width += 50 + (((name.split(' ')
+						// 	.map(a => a[0]))
+						// 	.reduce((a, b) => a + b, '')).length - 1)*50;
+					})
+					let x = 0;
+					actives.forEach((name) => {
+						const pWidth = 75;
+						// const pWidth = 50 + (((name.split(' ')
+						// 	.map(a => a[0]))
+						// 	.reduce((a, b) => a + b, '')).length - 1)*50;
+						if (rectContainsPoint(canvas.width / 2 + 175 + 50/2 - width/2 + x + 1, canvas.height - 125 + 1, pWidth - 2, 75 - 2, window.mx, window.my)) {
+							send({ activeUpgrade: name })
+							mouseDown = false;
+						}
+						x += pWidth;
+					})
+				}
+				showActives = false;
+			}
+			if (rectContainsPoint(canvas.width/ 2- 175 - 50 , canvas.height - 50, 50, 50, window.mx, window.my)) {
+				showPassives = true;
+				mouseDown = false;
+			} else {
+				if (showPassives) {
+					const passives = Object.keys(Powers).filter(k => Powers[k].type == 'Passive');
+					let width = 0;
+					passives.forEach((name) => {
+						width += 75;
+						// width += 50 + (((name.split(' ')
+						// 	.map(a => a[0]))
+						// 	.reduce((a, b) => a + b, '')).length - 1)*50;
+					})
+					let x = 0;
+					passives.forEach((name) => {
+						const pWidth = 75;
+						// const pWidth = 50 + (((name.split(' ')
+						// 	.map(a => a[0]))
+						// 	.reduce((a, b) => a + b, '')).length - 1)*50;
+						if (rectContainsPoint(canvas.width / 2 - 175 - 50/2 - width/2 + x + 1, canvas.height - 125 + 1, pWidth - 2, 75 - 2, window.mx, window.my)) {
+							send({ passiveUpgrade: name })
+							mouseDown = false;
+						}
+						x += pWidth;
+					})
+				}
+			// 	const passives = Object.keys(Powers).filter((k) => Powers[k].type == 'Passive');
+			// // const width = 50 * passives.length;
+			// let width = 0;
+			// passives.forEach((name) => {
+			// 	const abr = name.split(' ').map(a => a[0]);
+			// 	let string = abr.reduce((a, b) => a + b, '');
+			// 	let powerWidth = 50 + (string.length-1)*50;
+			// 	width += powerWidth;
+			// })
+			// ctx.font = '20px Work Sans'
+			// ctx.fillStyle = 'black'
+			// // string.length -= 3;
+			// ctx.globalAlpha = showPassives? 0.75: 0.5;
+			// ctx.fillRect(canvas.width /2 - 175 - 50/2 - width/2, canvas.height - 100, width, 50)
+			// ctx.globalAlpha = 1;
+			// ctx.font = '40px Work Sans';
+			// let x = 0;
+			// passives.forEach((name) => {
+			// 	ctx.globalAlpha = showPassives ? 1: 0.5;
+			// 	ctx.fillStyle = Powers[name].color;
+			// 	let string = name.split(' ').map(a => a[0]).reduce((a, b) => a + b, '')
+			// 	let pWidth = 50 + (string.length-1)*50
+			// 	ctx.fillRect(canvas.width /2 - 175 - 50/2 - width/2 + x, canvas.height - 100, pWidth, 50);
+			// 	ctx.fillStyle = 'black';
+			// 	ctx.globalAlpha = 1;
+			// 	ctx.strokeStyle = 'black';
+			// 	ctx.lineWidth = 3;
+			// 	ctx.strokeRect(canvas.width /2 - 175 - 50/2 - width/2 + x, canvas.height - 100, pWidth, 50);
+			// 	ctx.fillText(string, canvas.width / 2 - 175 - 50/2 - width/2 + x + pWidth/2, canvas.height - 100+50/2);
+			// 	if (!touchingBox) {
+			// 		if (rectContainsPoint(canvas.width / 2 - 175 - 50/2 - width/2 + x, canvas.height - 100, pWidth, 50, window.mx, window.my)) {
+			// 			ctx.font = '30px Work Sans';
+			// 			const nw = ctx.measureText(name).width;
+			// 			ctx.fillStyle = Powers[name].color;
+			// 			ctx.globalAlpha = 0.5;
+			// 			ctx.fillRect(canvas.width /2 - 175 - 50/2 - width/2 + x + pWidth/2 - nw/2 - 5, canvas.height -100-25-30/2 , nw + 10, 30)
+			// 			ctx.globalAlpha = 1;
+			// 			ctx.fillStyle = 'black'
+			// 			ctx.fillText(name, canvas.width / 2 - 175 - 50/2 - width/2 + x + pWidth/2, canvas.height-100-25)
+			// 			ctx.font = '40px Work Sans';
+			// 		}
+			// 	}
+			// 	x += pWidth
+			// })
+				showPassives = false;
+			}
 			// me().angle = angle;
-			send({ angle, mousedown: true })
+			send({ angle, mousedown: mouseDown })
             // me().angle = Math.atan2(my - 450, mx - 800);
         });
         window.addEventListener('mouseup', () => {
@@ -739,9 +851,15 @@ async function handleMessage(event, lag = true) {
 			}
 			if (pack.passiveUpgrade != undefined) {
 				players[pack.id].passiveUpgrade = pack.passiveUpgrade;
+				if (!players[pack.id].passiveUpgrade) {
+					showPassives = false;
+				}
 			}
 			if (pack.activeUpgrade != undefined) {
 				players[pack.id].activeUpgrade = pack.activeUpgrade;
+				if (!players[pack.id].activeUpgrade) {
+					showActives = false;
+				}
 			}
 			if (pack.bending != undefined) {
 				if (!players[pack.id].bending && pack.bending) {
@@ -852,6 +970,7 @@ chatForm.addEventListener('submit', (e) => {
 		send({ chatMessage: text });
 	}
 })
+let showStat = false;
 
 function trackKeys(event) {
     if (event.repeat || state != 'game' ) return;
@@ -877,12 +996,35 @@ function trackKeys(event) {
 	if (event.code === 'KeyL' && event.type === 'keydown' && !chatOpen()) {
 		extraLag = 0;
 	}
+	if (event.code.startsWith('Digit') && event.type === 'keydown' && !chatOpen()) {
+		if (showPassives) {
+			const passives = Object.keys(Powers).filter(k => Powers[k].type === 'Passive');
+			if (me().passiveUpgrade && passives[event.code.split('Digit')[1]-1]) {
+				send({ passiveUpgrade: passives[event.code.split('Digit')[1]-1] })
+			}
+		}
+		if (showActives) {
+			const actives = Object.keys(Powers).filter(k => Powers[k].type === 'Active');
+			if (me().activeUpgrade && actives[event.code.split('Digit')[1]-1]) {
+				send({ activeUpgrade: actives[event.code.split('Digit')[1]-1] })
+			}
+		}
+	}
+	if (event.code === 'Digit1' && event.type === 'keydown' && !chatOpen() && !showPassives &&!showActives && me().passiveUpgrade) {
+		showPassives = true;
+	}
+	if (event.code === 'Digit2' && event.type === 'keydown' && !chatOpen() && !showActives&&!showPassives && me().activeUpgrade) {
+		showActives = true;
+	}
 	if (event.code === 'KeyK' && event.type === 'keydown' && !chatOpen()) {
 		extraLag += 50;
 	}
     if (event.code === 'KeyG' && event.type === 'keydown' && !chatOpen()) {
         showServer = !showServer;
     }
+	if (event.code === 'KeyT' && event.type === 'keydown' && !chatOpen()) {
+		showStat = !showStat;
+	}
 	if (event.code === 'KeyM' && event.type === 'keydown' && !chatOpen()) {
 		if (muted) {
 			muted = false;
@@ -2425,20 +2567,18 @@ function run() {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText(
-		(showServer ? (
+		(showStat ? (
 			Math.round(rrt / 2) +
             ' ms' +
 			' [' +
             fpsCount +
-            'fps] [' +
-            Object.keys(players).length +
-            ' players]' + ` | (${Math.round(me().xv*100)/100}, ${Math.round(me().yv*100)/100})`) : '') ,
+            'fps]') : '') ,
     	2,
-        10
+        canvas.height - 10
     );
 	if (showServer) {
 		ctx.fillText('upstream: ' + (upstreamdisplay/1000).toFixed(2) + ' kb.s' +
-				' | downstream: ' + (downstreamdisplay/1000).toFixed(2) + ' kb/s' + ` | (${me().xv}, ${me().yv})`, 10,
+				' | downstream: ' + (downstreamdisplay/1000).toFixed(2) + ' kb/s' , 10,
 					40)
 	}
 	// ctx.textAlign = 'right';
@@ -2639,17 +2779,87 @@ function playerUI() {
 		ctx.fillStyle = 'yellow';
 		ctx.font = '25px Work Sans';
 		ctx.fillText('UP', canvas.width / 2 - 175 - 50 + 50/2, canvas.height -50/2)
-
-		if (rectContainsPoint(canvas.width/ 2- 175 - 50 , canvas.height - 50, 50, 50, window.mx, window.my)) {
+	
+		let touchingBox = rectContainsPoint(canvas.width/ 2- 175 - 50 , canvas.height - 50, 50, 50, window.mx, window.my)
+		if (!touchingBox && !showPassives) {
+			ctx.fillStyle = 'black';
+			ctx.font = '20px Work Sans';
+			ctx.fillText('[1]', canvas.width /2 - 175 - 50 + 50/2, canvas.height - 50 - 20)
+		}
+		if (showPassives || touchingBox) {
+			// if (touchingBox) {
+				ctx.strokeStyle = 'black';
+				ctx.lineWidth = 3;
+				ctx.strokeRect(canvas.width /2 - 175 - 50, canvas.height - 50, 50, 50)
+			// }
 			const passives = Object.keys(Powers).filter((k) => Powers[k].type == 'Passive');
+			// const width = 50 * passives.length;
+			let width = 0;
+			passives.forEach((name) => {
+				const abr = name.split(' ').map(a => a[0]);
+				let string = abr.reduce((a, b) => a + b, '');
+				let powerWidth = 75 //+ (string.length-1)*50;
+				width += powerWidth;
+			})
 			ctx.font = '20px Work Sans'
 			ctx.fillStyle = 'black'
-			let string = '- ';
-			passives.forEach((name) => {
-				string += name + ' - ';
-			});
 			// string.length -= 3;
-			ctx.fillText(`${string}`, canvas.width/2 - 175 - 50 + 50/2, canvas.height - 75)
+			ctx.globalAlpha = showPassives? 0.75: 0.5;
+			ctx.fillRect(canvas.width /2 - 175 - 50/2 - width/2, canvas.height - 125, width, 75)
+			ctx.globalAlpha = 1;
+			// ctx.globalAlpha = 1;
+			ctx.strokeStyle = 'black';
+			ctx.lineWidth = 3;
+			ctx.strokeRect(canvas.width /2 - 175 - 50/2 - width/2, canvas.height - 125, width, 75)
+			ctx.globalAlpha = 1;
+			ctx.font = '40px Work Sans';
+			let x = 0;
+			let y = 0;
+			passives.forEach((name) => {
+				y++;
+				ctx.globalAlpha = showPassives ? 1: 0.5;
+				ctx.fillStyle = Powers[name].color;
+				let string = name[0]//name.split(' ').map(a => a[0]).reduce((a, b) => a + b, '')
+				let pWidth = 75 //+ (string.length-1)*50
+				ctx.fillRect(canvas.width /2 - 175 - 50/2 - width/2 + x, canvas.height - 125, pWidth, 75);
+				ctx.fillStyle = 'black';
+				ctx.globalAlpha = 1;
+				ctx.strokeStyle = 'black';
+				ctx.lineWidth = 3;
+				ctx.strokeRect(canvas.width /2 - 175 - 50/2 - width/2 + x, canvas.height - 125, pWidth, 75);
+				ctx.fillText(string, canvas.width / 2 - 175 - 50/2 - width/2 + x + pWidth/2, canvas.height - 125 + (75)/2 );
+				ctx.fillStyle = 'black';
+				// ctx.fillRect(canvas.width / 2 - 175 - 50/2 - width/2 + x , canvas.height - 125 + 55, 75, 20);
+				// ctx.fillRect(canvas.width /2 - 175 - 50/2 - width/2 + x + 75/2 - 25/2, canvas.height - 125 + 55 - 75 - 5, 25, 25)
+				ctx.font = '40px Work Sans'
+				let hovering = false;
+				if (!touchingBox) {
+					if (rectContainsPoint(canvas.width / 2 - 175 - 50/2 - width/2 + x + 1, canvas.height - 125 + 1, pWidth - 2, 75 - 2, window.mx, window.my)) {
+						hovering = true;
+						ctx.font = '30px Work Sans';
+						const nw = ctx.measureText(name).width;
+						// ctx.fillStyle = Powers[name].color;
+						ctx.fillStyle = 'black'
+						ctx.globalAlpha = 1;
+						ctx.fillRect(canvas.width /2 - 175 - 50/2 - width/2 + x + pWidth/2 - nw/2 - 5, canvas.height -125-25/2-30/2-25-10 , nw + 10, 30)
+						ctx.globalAlpha = 1;
+						ctx.fillStyle = Powers[name].color
+						ctx.fillText(name, canvas.width / 2 - 175 - 50/2 - width/2 + x + pWidth/2, canvas.height-125-25/2-25-10)
+						ctx.font = '40px Work Sans';
+					}
+				}
+				// ctx.fillStyle = hovering ? Powers[name].color: 'white';
+				ctx.fillStyle = 'black'
+				ctx.font = '20px Work Sans';
+				ctx.fillText(`[${y}]`, canvas.width / 2 - 175 - 50/2 - width/2 + x + 75/2, canvas.height-125 - 25/2-5)
+				ctx.font = '40px Work Sans'
+				x += pWidth
+			})
+			// ctx.fillText('Choose Passive', canvas.width /2 - 175 - 50/2, canvas.height - 150)
+			// ctx.globalAlpha = showPassives? 1: 0.5;
+		
+			// ctx.fillStyle = 'white'
+			// ctx.fillText(`${string}`, canvas.width/2 - 175 - 50 + 50/2, canvas.height - 75)
 		}
 		// ctx.lineWidth = 3;
 		// ctx.strokeRect(canvas.width/2 - 175 - 50, canvas.height - 50, 50, 50);
@@ -2705,16 +2915,122 @@ function playerUI() {
 		ctx.fillStyle = 'yellow';
 		ctx.font = '25px Work Sans';
 		ctx.fillText('UP', canvas.width / 2 + 175 + 50/2, canvas.height -50/2)
-		if (rectContainsPoint(canvas.width/ 2 + 175 , canvas.height - 50, 50, 50, window.mx, window.my)) {
+		let touchingBox = rectContainsPoint(canvas.width/ 2 + 175 , canvas.height - 50, 50, 50, window.mx, window.my);
+		if (!touchingBox && !showActives) {
+			ctx.fillStyle = 'black';
+			ctx.font = '20px Work Sans';
+			ctx.fillText('[2]', canvas.width /2 + 175 + 50/2, canvas.height - 50 - 20)
+		} 
+		if (touchingBox || showActives) {
+			// if (touchingBox) {
+				ctx.strokeStyle = 'black';
+				ctx.lineWidth = 3;
+				ctx.strokeRect(canvas.width /2 + 175, canvas.height - 50, 50, 50)
+			// }
 			const actives = Object.keys(Powers).filter((k) => Powers[k].type == 'Active');
+			// const width = 50 * passives.length;
+			let width = 0;
+			actives.forEach((name) => {
+				const abr = name.split(' ').map(a => a[0]);
+				let string = abr.reduce((a, b) => a + b, '');
+				let powerWidth = 75 //+ (string.length-1)*50;
+				width += powerWidth;
+			})
 			ctx.font = '20px Work Sans'
 			ctx.fillStyle = 'black'
-			let string = '- ';
-			actives.forEach((name) => {
-				string += name + ' - ';
-			});
 			// string.length -= 3;
-			ctx.fillText(`${string}`, canvas.width/2 +175 + 50/2, canvas.height - 75)
+			ctx.globalAlpha = showActives? 0.75: 0.5;
+			ctx.fillRect(canvas.width /2 + 175 + 50/2 - width/2, canvas.height - 125, width, 75)
+			ctx.globalAlpha = 1;
+			// ctx.globalAlpha = 1;
+			ctx.strokeStyle = 'black';
+			ctx.lineWidth = 3;
+			ctx.strokeRect(canvas.width /2 + 175 + 50/2 - width/2, canvas.height - 125, width, 75)
+			ctx.globalAlpha = 1;
+			ctx.font = '40px Work Sans';
+			let x = 0;
+			let y = 0;
+			actives.forEach((name) => {
+				y++;
+				ctx.globalAlpha = showActives ? 1: 0.5;
+				ctx.fillStyle = Powers[name].color;
+				let string = name[0]//name.split(' ').map(a => a[0]).reduce((a, b) => a + b, '')
+				let pWidth = 75 //+ (string.length-1)*50
+				ctx.fillRect(canvas.width /2 + 175 + 50/2 - width/2 + x, canvas.height - 125, pWidth, 75);
+				ctx.fillStyle = 'black';
+				ctx.globalAlpha = 1;
+				ctx.strokeStyle = 'black';
+				ctx.lineWidth = 3;
+				ctx.strokeRect(canvas.width /2 + 175 + 50/2 - width/2 + x, canvas.height - 125, pWidth, 75);
+				ctx.fillText(string, canvas.width / 2 + 175 + 50/2 - width/2 + x + pWidth/2, canvas.height - 125 + (75)/2 );
+				ctx.fillStyle = 'black';
+				// ctx.fillRect(canvas.width /2 + 175 + 50/2 - width/2 + x + 75/2 - 25/2, canvas.height - 125 + 55 - 75 - 5, 25, 25)
+				// ctx.fillRect(canvas.width / 2 + 175 + 50/2 - width/2 + x , canvas.height - 125 + 55, 75, 20);
+				ctx.fillStyle = 'white';
+				ctx.font = '20px Work Sans';
+				// ctx.fillText(y, canvas.width / 2 + 175 + 50/2 - width/2 + x + 75/2, canvas.height-125+10 + 55)
+				ctx.font = '40px Work Sans'
+				let hovering = false;
+				if (!touchingBox) {
+					if (rectContainsPoint(canvas.width / 2 + 175 + 50/2 - width/2 + x + 1, canvas.height - 125 + 1, pWidth - 2, 75 - 2, window.mx, window.my)) {
+						hovering = true;
+						ctx.font = '30px Work Sans';
+						const nw = ctx.measureText(name).width;
+						// ctx.fillStyle = Powers[name].color;
+						ctx.fillStyle = 'black'
+						ctx.globalAlpha = 1;
+						ctx.fillRect(canvas.width /2 + 175 + 50/2 - width/2 + x + pWidth/2 - nw/2 - 5, canvas.height -125-25/2-30/2-25-10 , nw + 10, 30)
+						ctx.globalAlpha = 1;
+						ctx.fillStyle = Powers[name].color
+						ctx.fillText(name, canvas.width / 2 + 175 +  50/2 - width/2 + x + pWidth/2, canvas.height-125-25/2-25-10)
+						ctx.font = '40px Work Sans';
+					}
+				}
+				// ctx.fillStyle = hovering ? Powers[name].color: 'white';
+				ctx.fillStyle = 'black'
+				ctx.font = '20px Work Sans';
+				ctx.fillText(`[${y}]`, canvas.width / 2 + 175 + 50/2 - width/2 + x + 75/2, canvas.height-125 - 25/2 - 5)
+				ctx.font = '40px Work Sans'
+				x += pWidth
+				
+			})
+			// const actives = Object.keys(Powers).filter((k) => Powers[k].type == 'Active');
+			// ctx.font = '20px Work Sans'
+			// ctx.fillStyle = 'black'
+			// let string = '- ';
+			// actives.forEach((name) => {
+			// 	string += name + ' - ';
+			// });
+			// // string.length -= 3;
+			// ctx.fillText(`${string}`, canvas.width/2 +175 + 50/2, canvas.height - 75)
+
+			
+			// const actives = Object.keys(Powers).filter((k) => Powers[k].type == 'Active');
+			// const width = 75 * actives.length;
+			// ctx.font = '20px Work Sans'
+			// ctx.fillStyle = 'black'
+			// // string.length -= 3;
+			// ctx.globalAlpha = 0.75;
+			// ctx.fillRect(canvas.width /2 + 175 + 50/2 - width/2, canvas.height - 125, width, 50)
+			// ctx.globalAlpha = 1;
+			
+			// let x = 0;
+			// actives.forEach((name) => {
+			// 	ctx.fillStyle = Powers[name].color;
+			// 	ctx.fillRect(canvas.width /2 + 175 + 50/2 - width/2 + x, canvas.height - 125, 75, 75);
+			// 	ctx.fillStyle = 'black';
+			// 	ctx.font = '40px Work Sans';
+			// 	ctx.fillText(name[0], canvas.width / 2 + 175 + 50/2 - width/2 + x + 75/2, canvas.height - 125+75/2);
+			// 	x += 75
+			// })
+			// ctx.strokeStyle = 'black';
+			// ctx.lineWidth = 3;
+			// ctx.strokeRect(canvas.width /2 + 175 + 50/2 - width/2, canvas.height - 125, width, 75)
+
+			
+			// ctx.fillStyle = 'white'
+			// ctx.fillText(`${string}`, canvas.width/2 - 175 - 50 + 50/2, canvas.height - 75)
+		// }
 		}
 	}
 	// ctx.fillRect(canvas.width - 225 + 25/2, canvas.height - 75 + 25/2, 50, 50);

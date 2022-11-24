@@ -55,7 +55,7 @@ const Powers = {
 		desc: 'Upon activation, your bullets will curve to the nearest target. The curve will be fixed on new bullets and will only reset after you reload. [5s]',
 	},
 	'Accuracy Reload': {
-		color: 'blue',
+		color: '#0077ff',
 		type: 'Passive',
 		desc: 'Upon reloading with no ammo left, you will have enhanced accuracy on your next magazine. These reloads will take [2s] longer and your player will be indicated blue while you have enhanced accuracy.'
 	},

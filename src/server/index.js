@@ -147,6 +147,20 @@ wss.on('connection', (socket, req) => {
 			if (data.activate != undefined && players[clientId]) {
 				players[clientId].activate(players);
 			}
+			if (data.passiveUpgrade != undefined && players[clientId] && players[clientId].passiveUpgrade) {
+				const power = Powers[data.passiveUpgrade];
+				if (power != null) {
+					players[clientId].addPower(data.passiveUpgrade);
+					players[clientId].passiveUpgrade = false;
+				}
+			}	
+			if (data.activeUpgrade != undefined && players[clientId] && players[clientId].activeUpgrade) {
+				const power = Powers[data.activeUpgrade];
+				if (power != null) {
+					players[clientId].addPower(data.activeUpgrade);
+					players[clientId].activeUpgrade = false;
+				}
+			}
 			if (data.reloading != undefined && players[clientId]) {
 				players[clientId].reloading = Boolean(data.reloading);
 				if (players[clientId].powers.includes('Magz of War') && players[clientId].reloading === false) {
@@ -310,6 +324,20 @@ wss.on('connection', (socket, req) => {
 							1.2,
 		                );
 					} else if (players[clientId].weapon === 'Burst') {
+						players[clientId].burstTally = (players[clientId].burstTally + 1) % 3;
+						let tally = players[clientId].burstTally;
+						let speed = 325;
+						let life = 1.15;
+						// 0 - 1 - 2
+						if (tally === 0) {
+							// same
+						} else if (tally === 1) {
+							speed = 350;
+							life = 1.07
+						} else if (tally === 2) {
+							speed = 375;
+							life = 1;
+						}
 						bullets[bId] = new Bullet(
 							bId,
 							data.cx,
@@ -319,8 +347,8 @@ wss.on('connection', (socket, req) => {
 							clientId,
 							data.approxPing,
 							data.uid,
-							350,
-							1.15,
+							speed,
+							life,
 						)
 					} else if (players[clientId].weapon === 'SMG') {
 						bullets[bId] = new Bullet(
