@@ -151,14 +151,14 @@ wss.on('connection', (socket, req) => {
 				const power = Powers[data.passiveUpgrade];
 				if (power != null) {
 					players[clientId].addPower(data.passiveUpgrade);
-					players[clientId].passiveUpgrade = false;
+					// players[clientId].passiveUpgrade = false;
 				}
 			}	
 			if (data.activeUpgrade != undefined && players[clientId] && players[clientId].activeUpgrade) {
 				const power = Powers[data.activeUpgrade];
 				if (power != null) {
 					players[clientId].addPower(data.activeUpgrade);
-					players[clientId].activeUpgrade = false;
+					// players[clientId].activeUpgrade = false;
 				}
 			}
 			if (data.reloading != undefined && players[clientId]) {
@@ -186,7 +186,7 @@ wss.on('connection', (socket, req) => {
 					players[clientId].bending = false;
 					players[clientId].dataChange = true;
 				}
-				if (players[clientId].powers.includes('Reflective Reload') && players[clientId].reloading) {
+				if (players[clientId].powers.includes('Reflective Reload') && players[clientId].reloading && data.reloadTime != undefined && data.ammo === 0) {
 					players[clientId].reflecting = true;
 					players[clientId].reflectTimer = 0;
 				}
@@ -326,8 +326,8 @@ wss.on('connection', (socket, req) => {
 					} else if (players[clientId].weapon === 'Burst') {
 						players[clientId].burstTally = (players[clientId].burstTally + 1) % 3;
 						let tally = players[clientId].burstTally;
-						let speed = 325;
-						let life = 1.15;
+						let speed = 310;
+						let life = 1.2;
 						// 0 - 1 - 2
 						if (tally === 0) {
 							// same
@@ -335,8 +335,8 @@ wss.on('connection', (socket, req) => {
 							speed = 350;
 							life = 1.07
 						} else if (tally === 2) {
-							speed = 375;
-							life = 1;
+							speed = 390;
+							life = 0.96;
 						}
 						bullets[bId] = new Bullet(
 							bId,
@@ -716,21 +716,25 @@ function ServerTick() {
 			})
             const distX = x - bullet.x;
             const distY = y - bullet.y;
+			if (player.powers.includes('Reflective Reload') && player.reflecting) {
+				if (distX * distX + distY* distY < 
+				   (player.reflectRadius + bullet.r) * (player.reflectRadius + bullet.r)) {
+						const angle = Math.atan2(player.y - bullet.y, player.x - bullet.x);// bullet to player
+						// console.log(angle, player.angle)
+						if (angle < player.angle - Math.PI/2 || angle > player.angle + Math.PI/2) {
+							// console.log('successfculyl reflected')
+							bullet.angle = player.angle;
+							bullet.parent = player.id;
+							bullet.lifeTimer = 0;
+							continue;
+						}
+				   }
+			}
             if (
                 distX * distX + distY * distY <
                 (player.r + bullet.r) * (player.r + bullet.r)
             ) {
-				if (player.powers.includes('Reflective Reload') && player.reflecting) {
-					const angle = Math.atan2(player.y - bullet.y, player.x - bullet.x);// bullet to player
-					// console.log(angle, player.angle)
-					if (angle < player.angle - Math.PI/2 || angle > player.angle + Math.PI/2) {
-						// console.log('successfculyl reflected')
-						bullet.angle = player.angle;
-						bullet.parent = player.id;
-						bullet.lifeTimer = 0;
-						continue;
-					}
-				}
+				
 				// player.xv += Math.cos(bullet.angle)*10;
 				// player.yv += Math.sin(bullet.angle)*10
 				let damage;
@@ -745,7 +749,8 @@ function ServerTick() {
 					damage = 70
 					// damage = Math.round(65 + 10* (1-(bullet.lifeTimer/bullet.life)));
 				} else if (players[bullet.fromParent].weapon === 'Burst') {
-					damage = 30
+					damage = Math.round(20 + 30	* (bullet.lifeTimer/bullet.life));
+					damage = Math.min(damage, 30);
 					// damage = Math.round(20 + 10 * (1-(bullet.lifeTimer/bullet.life)));
 				} else if (players[bullet.fromParent].weapon === 'SMG') {
 					damage = Math.round(7 + 2 * ((bullet.lifeTimer/bullet.life)));

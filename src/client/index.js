@@ -630,7 +630,7 @@ async function handleMessage(event, lag = true) {
 				mouseDown = false;
 			} else {
 				if (showActives) {
-					const actives = Object.keys(Powers).filter(k => Powers[k].type == 'Active');
+					const actives = Object.keys(Powers).filter(k => Powers[k].type == 'Active' && !Powers[k].exp);
 					let width = 0;
 					actives.forEach((name) => {
 						width += 75;
@@ -658,7 +658,7 @@ async function handleMessage(event, lag = true) {
 				mouseDown = false;
 			} else {
 				if (showPassives) {
-					const passives = Object.keys(Powers).filter(k => Powers[k].type == 'Passive');
+					const passives = Object.keys(Powers).filter(k => Powers[k].type == 'Passive' && !Powers[k].exp);
 					let width = 0;
 					passives.forEach((name) => {
 						width += 75;
@@ -843,6 +843,9 @@ async function handleMessage(event, lag = true) {
 			if (pack.reflecting != undefined) {
 				players[pack.id].reflecting = pack.reflecting;
 			}
+			if (pack.reflectRadius != undefined) {
+				players[pack.id].reflectRadius = pack.reflectRadius;
+			}
 			if (pack.denying != undefined) {
 				players[pack.id].denying = pack.denying;
 			}
@@ -851,18 +854,18 @@ async function handleMessage(event, lag = true) {
 			}
 			if (pack.passiveUpgrade != undefined) {
 				players[pack.id].passiveUpgrade = pack.passiveUpgrade;
-				if (!players[pack.id].passiveUpgrade) {
+				if (!players[pack.id].passiveUpgrade && pack.id === selfId) {
 					showPassives = false;
 				}
 			}
 			if (pack.activeUpgrade != undefined) {
 				players[pack.id].activeUpgrade = pack.activeUpgrade;
-				if (!players[pack.id].activeUpgrade) {
+				if (!players[pack.id].activeUpgrade && pack.id === selfId) {
 					showActives = false;
 				}
 			}
 			if (pack.bending != undefined) {
-				if (!players[pack.id].bending && pack.bending) {
+				if (!players[pack.id].bending && pack.bending && pack.id === selfId) {
 					// currentBulletCooldown -= 1;
 					me().reloading = true;
 					me().reloadTimer = me().reloadTime - (Weapons[me().weapon].cooldown/2);
@@ -998,13 +1001,13 @@ function trackKeys(event) {
 	}
 	if (event.code.startsWith('Digit') && event.type === 'keydown' && !chatOpen()) {
 		if (showPassives) {
-			const passives = Object.keys(Powers).filter(k => Powers[k].type === 'Passive');
+			const passives = Object.keys(Powers).filter(k => Powers[k].type === 'Passive' && !Powers[k].exp);
 			if (me().passiveUpgrade && passives[event.code.split('Digit')[1]-1]) {
 				send({ passiveUpgrade: passives[event.code.split('Digit')[1]-1] })
 			}
 		}
 		if (showActives) {
-			const actives = Object.keys(Powers).filter(k => Powers[k].type === 'Active');
+			const actives = Object.keys(Powers).filter(k => Powers[k].type === 'Active' && !Powers[k].exp);
 			if (me().activeUpgrade && actives[event.code.split('Digit')[1]-1]) {
 				send({ activeUpgrade: actives[event.code.split('Digit')[1]-1] })
 			}
@@ -1040,7 +1043,7 @@ function trackKeys(event) {
 		if (!me().reloading && me().ammo !== Weapons[me().weapon].ammo) {
 			me().reloading = true;
 			me().reloadTimer = 0;
-			send({ reloading: true, reloadTime: me().reloadTime, })
+			send({ reloading: true, reloadTime: me().reloadTime, ammo: me().ammo})
 		}
 	}
 	if (event.code === 'Space' && event.type === 'keydown' && !chatOpen() && state == 'game') {
@@ -1221,8 +1224,11 @@ function update(dt) {
 	if (me().powers.includes('Accuracy Reload') && me().ammo <= 0) {
 		me().reloadTime += 2;
 	}
-	
-	if (me().ammo === 0 && !me().reloading) {
+	let canAutoReload = true;
+	if (me().powers.includes('Reflective Reload')) {
+		canAutoReload = false;
+	}
+	if (me().ammo === 0 && !me().reloading && canAutoReload) {
 		me().reloading = true;
 		me().reloadTimer = 0;
 		send({ reloading: true });
@@ -2013,13 +2019,15 @@ function run() {
         ctx.stroke();
 
 		if (player.powers.includes('Reflective Reload') && player.reflecting) {
-			ctx.lineWidth = 5;
-			ctx.strokeStyle = Powers['Reflective Reload'].color;
+			ctx.lineWidth = 10;
+			ctx.strokeStyle = Powers['Reflective Reload'].color
+			// ctx.fillStyle = ctx.strokeStyle;
 			ctx.translate(x, y);
 			ctx.rotate(player.angle);
 			ctx.beginPath()
-			ctx.arc(0, 0, player.r, -Math.PI/2, Math.PI/2);
+			ctx.arc(0, 0, player.reflectRadius, -Math.PI/2, Math.PI/2);
 			ctx.stroke()
+			// ctx.fill()
 			ctx.rotate(-player.angle);
 			ctx.translate(-x, -y)
 		}
@@ -2792,7 +2800,7 @@ function playerUI() {
 				ctx.lineWidth = 3;
 				ctx.strokeRect(canvas.width /2 - 175 - 50, canvas.height - 50, 50, 50)
 			// }
-			const passives = Object.keys(Powers).filter((k) => Powers[k].type == 'Passive');
+			const passives = Object.keys(Powers).filter((k) => Powers[k].type == 'Passive' && !Powers[k].exp );
 			// const width = 50 * passives.length;
 			let width = 0;
 			passives.forEach((name) => {
@@ -2927,7 +2935,7 @@ function playerUI() {
 				ctx.lineWidth = 3;
 				ctx.strokeRect(canvas.width /2 + 175, canvas.height - 50, 50, 50)
 			// }
-			const actives = Object.keys(Powers).filter((k) => Powers[k].type == 'Active');
+			const actives = Object.keys(Powers).filter((k) => Powers[k].type == 'Active' && !Powers[k].exp);
 			// const width = 50 * passives.length;
 			let width = 0;
 			actives.forEach((name) => {

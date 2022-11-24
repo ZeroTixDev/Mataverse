@@ -31,6 +31,7 @@ const Powers = {
 	'Angelic Lunge': {
 		color: '#ff1f1f',
 		type: 'Active',
+		exp: true,
 		desc: 'Upon activation, you will charge for [1s] while losing 30 health and then lunge in the direction of your gun but lose all of your sprint. You need a full sprint bar for activation. This ability can kill you.',
 	},
 	'Quantum Field': {
@@ -42,11 +43,13 @@ const Powers = {
 	'Bullet Boomerang': {
 		color: '#1fff5a',
 		type: 'Active',
+		exp: true,
 		desc: 'Upon activation, your bullets will reverse their velocity and go in the opposite direction with 1.5x damage boost. The lifespan of the bullets are extended. [0.5s]',
 	},
 	'War Tank': {
 		color: '#ffe14d',
 		type: 'Passive',
+		exp: true,
 		desc: 'You gain 50 armor with this passive but your sprint duration is halved.',
 	},
 	'Bended Barrel': {
@@ -57,6 +60,7 @@ const Powers = {
 	'Accuracy Reload': {
 		color: '#0077ff',
 		type: 'Passive',
+		exp: true,
 		desc: 'Upon reloading with no ammo left, you will have enhanced accuracy on your next magazine. These reloads will take [2s] longer and your player will be indicated blue while you have enhanced accuracy.'
 	},
 	'Denial of Sprint': {
@@ -67,7 +71,7 @@ const Powers = {
 	'Reflective Reload': {
 		color: '#fff01f',
 		type: 'Passive',
-		desc: 'Upon reloading with no ammo left, you will parry any bullets that hit you from the front side for the next 1.5s. Parried bullets will be reflected in your gun direction.',
+		desc: 'Upon reloading with no ammo left, you will parry any bullets that hit you from the front side for the next 0.75s. Parried bullets will be reflected in your gun direction. You cannot auto reload.',
 	}
 }
 

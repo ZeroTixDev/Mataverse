@@ -142,6 +142,7 @@ module.exports = class Player {
 		// reflective reload
 		this.reflectTimer = 0;
 		this.reflecting = false;
+		this.reflectRadius = this.r;
 
 		this.usePassives([])
 		// each ability has special properties
@@ -328,8 +329,14 @@ module.exports = class Player {
 	addPower(name) {
 		if (Powers[name].type === 'Active' && this.powers.length === 0) {
 			this.powers = [undefined, name];
+			this.activeUpgrade = false;
 		} else {
 			this.powers.push(name);
+			if (Powers[name].type === 'Active') {
+				this.activeUpgrade = false;
+			} else if (Powers[name].type === 'Passive') {
+				this.passiveUpgrade = false;
+			}
 		}
 	}
 	sendChat(text) {
@@ -596,7 +603,8 @@ module.exports = class Player {
 		this.currentBulletCooldown = Math.min(this.currentBulletCooldown, this.bulletCooldown);
 
 		this.reflectTimer += dt;
-		if (this.reflectTimer >= 1.5) {
+		this.reflectRadius = this.r + (this.reflectTimer/0.75)*15
+		if (this.reflectTimer >= 0.75) {
 			this.reflecting = false;
 		}
 		this.activeCooldownTimer += dt;
@@ -833,6 +841,7 @@ module.exports = class Player {
 			denying: this.denying,
 			denied: this.denied,
 			reflecting: this.reflecting,
+			reflectRadius: this.reflectRadius,
 			passiveUpgrade: this.passiveUpgrade,
 			activeUpgrade: this.activeUpgrade,
 
