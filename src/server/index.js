@@ -186,7 +186,7 @@ wss.on('connection', (socket, req) => {
 					players[clientId].bending = false;
 					players[clientId].dataChange = true;
 				}
-				if (players[clientId].powers.includes('Reflective Reload') && players[clientId].reloading && data.reloadTime != undefined && data.ammo === 0) {
+				if (players[clientId].powers.includes('Reflective Reload') && players[clientId].reloading && data.reloadTime != undefined && data.ammo <= (Weapons[players[clientId].weapon].rrAmmo ?? 0)) {
 					players[clientId].reflecting = true;
 					players[clientId].reflectTimer = 0;
 				}

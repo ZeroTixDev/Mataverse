@@ -9,11 +9,11 @@ if (!globalThis.onClient) {
 }
 // lol
 const Weapons = {
-	Pistol: { cooldown: 0.55, gunWidth: 4, gunHeight: 1.4, ammo: 12, reloadTime: 2, err: 20, color: '#000000', recoil: 2},
-	Shotgun: { cooldown: 1.2, gunWidth: 6, gunHeight: 2, ammo: 6, reloadTime: 3 , err: 10, color: '#611f04', recoil: 7},
-	Rifle: {cooldown: 1.6, gunWidth: 2.5, gunHeight: 2.7, ammo: 7, reloadTime: 2.25, err: 5, color: '#49004f', recoil: 0},
-	Burst: { cooldown: 1.1, gunWidth: 4, gunHeight: 2.4, ammo: 18, reloadTime: 2.75, err: 20, color: '#6e0400', recoil: 1},
-	SMG: { cooldown: 0.07, gunWidth: 3, gunHeight: 1.6, ammo: 24, reloadTime: /*1.75*/1.75, err: 40, color: '#090152'/*'#043f7a'*/, recoil: 0.5},
+	Pistol: { cooldown: 0.55, gunWidth: 4, gunHeight: 1.4, ammo: 12, reloadTime: 2, err: 20, color: '#000000', recoil: 2, rrAmmo: 6},
+	Shotgun: { cooldown: 1.2, gunWidth: 6, gunHeight: 2, ammo: 6, reloadTime: 3 , err: 10, color: '#611f04', recoil: 7, rrAmmo: 2, },
+	Rifle: {cooldown: 1.6, gunWidth: 2.5, gunHeight: 2.7, ammo: 7, reloadTime: 2.25, err: 5, color: '#49004f', recoil: 0, rrAmmo: 3},
+	Burst: { cooldown: 1.1, gunWidth: 4, gunHeight: 2.4, ammo: 18, reloadTime: 2.75, err: 20, color: '#6e0400', recoil: 1, rrAmmo: 6},
+	SMG: { cooldown: 0.07, gunWidth: 3, gunHeight: 1.6, ammo: 24, reloadTime: /*1.75*/1.75, err: 40, color: '#090152'/*'#043f7a'*/, recoil: 0.5, rrAmmo: 0},
 	LMG: { cooldown: 0.13, gunWidth: 6.5, gunHeight: 2, ammo: 75, reloadTime: 4.5, err: 35, color: '#00332d', recoil: 0},
 }
 

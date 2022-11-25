@@ -2201,17 +2201,24 @@ function run() {
 			  //       );
 				// }
 			// }
+			ctx.rotate(-(currentAngle - Math.PI / 2))
+			if (player.powers.includes('Reflective Reload') && !me().reloading &&
+			   me().ammo <= (Weapons[me().weapon].rrAmmo ?? 0) && playerId == selfId) {
+				ctx.fillStyle = Powers['Reflective Reload'].color;
+				ctx.fillRect(player.r + 4 - gunWidth-10, player.r + 2 - 10, 20, 20)
+			}
 			ctx.fillStyle = 'black';
 			ctx.font = '20px Work Sans, Arial';
 			ctx.textAlign = 'center';
 			if (player.lCharge) {
 				ctx.fillStyle = 'red'
 			}
+			
 			if (player.bending) {
 				// ctx.fillStyle = '#24ff00'//Powers['Bended Barrel'].color;//'#d878ff'
 			}
 			if (playerId == selfId) {
-				ctx.rotate(-(currentAngle - Math.PI / 2))
+				
 				ctx.fillText(me().ammo, player.r + 4 /*+ (player.armor / 100) * 13*/ - gunWidth, player.r+2);
 			}
 		} else if (player.reloading) {
