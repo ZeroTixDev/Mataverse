@@ -603,7 +603,7 @@ module.exports = class Player {
 		this.currentBulletCooldown = Math.min(this.currentBulletCooldown, this.bulletCooldown);
 
 		this.reflectTimer += dt;
-		this.reflectRadius = this.r + (this.reflectTimer/0.75)*40
+		this.reflectRadius = this.r + (this.reflectTimer/0.75)*(this.r*Weapons[this.weapon].gunHeight);
 		if (this.reflectTimer >= 0.75) {
 			this.reflecting = false;
 		}
