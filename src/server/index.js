@@ -725,6 +725,7 @@ function ServerTick() {
 							// console.log('successfculyl reflected')
 							bullet.angle = player.angle;
 							bullet.parent = player.id;
+							bullet.curveFactor = 0;
 							bullet.lifeTimer = 0;
 							continue;
 						}
