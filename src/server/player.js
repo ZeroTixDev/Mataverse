@@ -44,7 +44,7 @@ module.exports = class Player {
 		this.weapon = weapon;
 		// burst only
 		this.burstTally = 2; // (because its module 3)
-        this.speed = 10//30//75; //55;
+        this.speed = 12//30//75; //55;
         this.input = { up: false, right: false, down: false, left: false, shift: false };
         this.changed = false;
 		this.totalDamage = 0;

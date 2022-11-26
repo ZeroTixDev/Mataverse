@@ -13,7 +13,7 @@ global.sendRate = 120;
 // global.gameSpeed = 0.5;
 let timer = 0;
 let globalTick = 0;
-const arena = { r: 700 };
+const arena = { r: 800 };
 global.getBullets = () => bullets;
 let perfAmount = 0;
 // const obstacles = [
@@ -31,9 +31,10 @@ let perfAmount = 0;
 // ];
 // const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":300,"y":300,"width":200,"height":200,"type":"obstacle"},{"x":1100,"y":300,"width":200,"height":200,"type":"obstacle"},{"x":700,"y":700,"width":200,"height":200,"type":"obstacle"},{"x":300,"y":1100,"width":200,"height":200,"type":"obstacle"},{"x":1100,"y":1100,"width":200,"height":200,"type":"obstacle"},{"x":700,"y":500,"width":50,"height":200,"type":"obstacle"},{"x":850,"y":900,"width":50,"height":200,"type":"obstacle"}],"blocks":[],"arena":{"width":1600,"height":1600}}')
 
-const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":690,"y":600,"width":20,"height":200,"type":"obstacle"},{"x":600,"y":290,"width":200,"height":20,"type":"obstacle"},{"x":190,"y":400,"width":20,"height":200,"type":"obstacle"},{"x":920,"y":820,"width":160,"height":160,"type":"obstacle"},{"x":620,"y":1200,"width":160,"height":200,"type":"obstacle"},{"x":800,"y":190,"width":160,"height":160,"type":"obstacle"}],"blocks":[],"arena":{"width":1400,"height":1400}}')
+// const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":690,"y":600,"width":20,"height":200,"type":"obstacle"},{"x":600,"y":290,"width":200,"height":20,"type":"obstacle"},{"x":190,"y":400,"width":20,"height":200,"type":"obstacle"},{"x":920,"y":820,"width":160,"height":160,"type":"obstacle"},{"x":620,"y":1200,"width":160,"height":200,"type":"obstacle"},{"x":800,"y":190,"width":160,"height":160,"type":"obstacle"}],"blocks":[],"arena":{"width":1400,"height":1400}}')
 // const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":600,"y":1200,"width":200,"height":200,"type":"obstacle"},{"x":0,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":600,"y":0,"width":200,"height":200,"type":"obstacle"},{"x":1200,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":650,"y":650,"width":100,"height":100,"type":"obstacle"}],"blocks":[],"arena":{"width":1400,"height":1400}}')
 
+const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":1150,"y":750,"width":100,"height":100,"type":"obstacle"},{"x":1050,"y":850,"width":100,"height":100,"type":"obstacle"},{"x":400,"y":550,"width":50,"height":100,"type":"obstacle"},{"x":200,"y":920,"width":200,"height":30,"type":"obstacle"},{"x":730,"y":320,"width":250,"height":30,"type":"obstacle"},{"x":900,"y":250,"width":150,"height":70,"type":"obstacle"},{"x":720,"y":1230,"width":50,"height":50,"type":"obstacle"}],"blocks":[],"arena":{"width":1600,"height":1600}}')
 function darrowsToMata(string) {
 	const data = JSON.parse(string);
 	const oX = (arena.r*2) - data.arena.width
