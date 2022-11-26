@@ -211,7 +211,7 @@ module.exports = class Player {
 			this.denialAngle = this.angle;
 			this.denialTimer = 0;
 		}
-		if (this.powers.includes('Bended Barrel') && this.activeCooldownTimer >= this.activeCooldown) {
+		if (this.powers.includes('Bended Barrel') && !this.bending && this.activeCooldownTimer >= this.activeCooldown) {
 			
 			// this.bendTimer = 3;
 			// this.bending = true;
