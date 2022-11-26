@@ -629,6 +629,9 @@ async function handleMessage(event, lag = true) {
             send({ angle  });
         });
         window.addEventListener('mousedown', (e) => {
+			if (e.which === 3 || e.button === 2) {
+				return e.preventDefault();
+			}
             mouseDown = true;
             const bound = canvas.getBoundingClientRect();
             mx = Math.round((e.pageX - bound.left) / canvScale);
