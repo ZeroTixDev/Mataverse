@@ -716,7 +716,11 @@ function ServerTick() {
 			})
             const distX = x - bullet.x;
             const distY = y - bullet.y;
-			if (player.powers.includes('Reflective Reload') && player.reflecting) {
+			const touchingPlayer = (
+                distX * distX + distY * distY <
+                (player.r + bullet.r) * (player.r + bullet.r)
+            );
+			if (player.powers.includes('Reflective Reload') && player.reflecting && !touchingPlayer) {
 				if (distX * distX + distY* distY < 
 				   (player.reflectRadius + bullet.r) * (player.reflectRadius + bullet.r)) {
 						const angle = Math.atan2(player.y - bullet.y, player.x - bullet.x);// bullet to player
@@ -731,10 +735,7 @@ function ServerTick() {
 						}
 				   }
 			}
-            if (
-                distX * distX + distY * distY <
-                (player.r + bullet.r) * (player.r + bullet.r)
-            ) {
+            if (touchingPlayer) {
 				
 				// player.xv += Math.cos(bullet.angle)*10;
 				// player.yv += Math.sin(bullet.angle)*10
