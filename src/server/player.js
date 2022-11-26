@@ -331,7 +331,11 @@ module.exports = class Player {
 			this.powers = [undefined, name];
 			this.activeUpgrade = false;
 		} else {
-			this.powers.push(name);
+			if (this.powers[1] != undefined && Powers[this.powers[1]].type === 'Active') {
+				this.powers[0] = name;
+			} else {
+				this.powers.push(name);
+			}
 			if (Powers[name].type === 'Active') {
 				this.activeUpgrade = false;
 			} else if (Powers[name].type === 'Passive') {
