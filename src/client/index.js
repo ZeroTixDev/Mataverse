@@ -611,6 +611,15 @@ async function handleMessage(event, lag = true) {
         inputBuffer = []
 		window.mx = 0;
 		window.my = 0;
+		window.addEventListener('contextmenu', (e) => {
+			e.preventDefault();
+			if (players[selfId] && !me().reloading && me().ammo !== Weapons[me().weapon].ammo) {
+				me().reloading = true;
+				me().reloadTimer = 0;
+				send({ reloading: true, reloadTime: me().reloadTime, ammo: me().ammo})
+			}
+			return false;
+		})
         window.addEventListener('mousemove', (e) => {
             const bound = canvas.getBoundingClientRect();
             mx = Math.round((e.pageX - bound.left) / canvScale);
