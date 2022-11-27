@@ -612,12 +612,7 @@ async function handleMessage(event, lag = true) {
 		window.mx = 0;
 		window.my = 0;
 		window.addEventListener('contextmenu', (e) => {
-			e.preventDefault();
-			if (players[selfId] && !me().reloading && me().ammo !== Weapons[me().weapon].ammo) {
-				me().reloading = true;
-				me().reloadTimer = 0;
-				send({ reloading: true, reloadTime: me().reloadTime, ammo: me().ammo})
-			}
+			e.preventDefault()
 			return false;
 		})
         window.addEventListener('mousemove', (e) => {
@@ -630,6 +625,11 @@ async function handleMessage(event, lag = true) {
         });
         window.addEventListener('mousedown', (e) => {
 			if (e.which === 3 || e.button === 2) {
+				if (players[selfId] && !me().reloading && me().ammo !== Weapons[me().weapon].ammo) {
+					me().reloading = true;
+					me().reloadTimer = 0;
+					send({ reloading: true, reloadTime: me().reloadTime, ammo: me().ammo})
+				}
 				return e.preventDefault();
 			}
             mouseDown = true;
@@ -879,6 +879,7 @@ async function handleMessage(event, lag = true) {
 			if (pack.bending != undefined) {
 				if (!players[pack.id].bending && pack.bending && pack.id === selfId) {
 					// currentBulletCooldown -= 1;
+					me().bendedReload = true;
 					me().reloading = true;
 					me().reloadTimer = me().reloadTime - (Weapons[me().weapon].cooldown/2);
 				}
@@ -1252,7 +1253,10 @@ function update(dt) {
 			me().reloading = false;
 			send({ reloading: false })
 			currentBulletCooldown = bulletCooldown;
-			me().ammo = Weapons[me().weapon].ammo;
+			if (!me().bendedReload) {
+				me().ammo = Weapons[me().weapon].ammo;
+			}
+			me().bendedReload = undefined;
 		}
 	}
 	if (!me().reloading) {
