@@ -840,7 +840,7 @@ function ServerTick() {
             // changePack.push(player.diffPack(packedPlayers[playerId]));
         }
 		changePack.push(player.pack())
-		packedPlayers[playerId] = player.pack()
+		// packedPlayers[playerId] = player.pack()
     }
     const bulletPack = [];
     const bDel = [];
@@ -859,19 +859,19 @@ function ServerTick() {
     for (const id of bDel) {
         delete bullets[id];
     }
-    if (changePack.length > 0) {
+    // if (changePack.length > 0) {
         for (const clientId of Object.keys(clients)) {
-            send(clientId, { changePack, changeTick: globalTick, bulletPack });
+            send(clientId, { changePack,  bulletPack });
         }
-    } else if (bulletPack.length > 0) {
-        for (const clientId of Object.keys(clients)) {
-            send(clientId, { bulletPack });
-        }
-    }
+    // } else if (bulletPack.length > 0) {
+    //     for (const clientId of Object.keys(clients)) {
+    //         send(clientId, { bulletPack });
+    //     }
+    // }
 	perfAmount += (Date.now() - perfStart);
 }
 
 setInterval(() => {
-	// console.log('took', perfAmount, 'ms');
+	console.log('took', perfAmount, 'ms');
 	perfAmount = 0;
 }, 1000);

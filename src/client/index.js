@@ -2043,6 +2043,9 @@ function run() {
 			ctx.beginPath()
 			ctx.arc(0, 0, player.reflectRadius, -Math.PI/2, Math.PI/2);
 			ctx.stroke()
+			ctx.lineWidth = 4;
+			ctx.strokeStyle = 'black'
+			ctx.stroke()
 			// ctx.fill()
 			ctx.rotate(-player.angle);
 			ctx.translate(-x, -y)
