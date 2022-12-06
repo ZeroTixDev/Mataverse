@@ -133,7 +133,7 @@ module.exports = class Player {
 
 		// denial of sprint
 		this.denialAngle = null;
-		this.denialLength = 350;
+		this.denialLength = 450;
 		this.denialTimer = Infinity;
 		this.denying = false;
 		this.denied = false;

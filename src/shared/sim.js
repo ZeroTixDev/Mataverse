@@ -190,9 +190,9 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 				{x: player2.x, y: player2.y}, player2.r)) {
 				// _shiftRegenTimer = 0;
 				// player2.shiftRegenTimer = 0;
-				if (!player2.denied && player.activeCooldownTimer <= 0.25) { // first 0.5s of ability
-					player2.xv += _xv*2;
-					player2.yv += _yv*2;
+				if (!player2.denied && player.activeCooldownTimer <= 0.5) { // first 0.5s of ability
+					player2.xv += _xv*3;
+					player2.yv += _yv*3;
 				}
 				player.denying = true;
 				player2.denied = true;
