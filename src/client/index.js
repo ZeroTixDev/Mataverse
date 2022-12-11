@@ -767,7 +767,7 @@ async function handleMessage(event, lag = true) {
 		updatetimestamp = window.performance.now()/1000;
         for (const pack of data.changePack) {
             if (pack.id != selfId) {
-                players[pack.id].otherUpdate(pack, data.changeTick);
+                players[pack.id]?.otherUpdate(pack, data.changeTick);
             }
 			if (pack.x != undefined) {
             	players[pack.id].serverX = pack.x;
@@ -801,6 +801,10 @@ async function handleMessage(event, lag = true) {
 			}
 			if (pack.shifting != undefined) {
 				players[pack.id].shifting = pack.shifting;
+			}
+			if (pack.skating != undefined) {
+				players[pack.id].skating = pack.skating;
+				console.log(pack.skating)
 			}
 			if (pack.currentShift != undefined) {
 				players[pack.id].currentShift = pack.currentShift;
@@ -1963,6 +1967,9 @@ function run() {
 		if (player.shifting) {
 			ctx.fillStyle = '#ff7700'
 			// ctx.fillStyle = 'white'
+		}
+		if (player.skating) {
+			ctx.fillStyle = '#00d9ff';
 		}
         ctx.globalAlpha = 0.3;
 		// if (topPlayers()[0].id == selfId) {

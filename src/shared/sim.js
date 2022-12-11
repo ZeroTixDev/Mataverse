@@ -72,6 +72,11 @@ const Powers = {
 		color: '#fff01f',
 		type: 'Passive',
 		desc: 'Upon reloading with no ammo left, you will parry any bullets that hit you from the front side for the next 0.75s. Parried bullets will be reflected in your gun direction. You cannot auto reload.',
+	},
+	'Ice Skate': {
+		color: '#00d9ff',
+		type: 'Passive',
+		desc: 'Upon sprinting for under 0.6s but more than 0.1s, you will begin skating. Your sprint depletes 1.5x faster.'
 	}
 }
 
@@ -89,6 +94,9 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 	let _shiftRegenTimer = player.shiftRegenTimer;
     let armorDec = 1 - (player.maxArmor / 100) * 0.4;
     let speed = player.speed * armorDec;
+	if (player.shiftTime == undefined) {
+		player.shiftTime = 0;
+	}
 	// console.log(player.denied)
 	if (player.denied) {
 		speed = speed * 0.5;
@@ -103,15 +111,37 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 	if (!player.denied && !player.denying) {
 		if (_input.shift && _currentShift > 0) {
 			_shiftRegenTimer = 0;
-			_currentShift -= dt*1.5;
+			let mult = 1;
+			if (player.powers.includes('Ice Skate')) {
+				mult = 1.5;
+			}
+			_currentShift -= dt*1.5*mult;
 			_currentShift = Math.max(_currentShift, 0);
-			speed *= 1.5
+			player.shiftTime += dt;
+			let acc = 1;
+			if (player.powers.includes('Ice Skate')
+			   && player.shiftTime >= 0.1 && player.shiftTime <= 0.6) {
+				player.skating = true;
+				acc = 0.4;
+				// acc = player.shiftTime + 1.5;
+			} else {
+				player.skating = false;
+			}
+			speed *= 1.5*acc;
+		} else {
+			player.shiftTime = 0;
+			player.skating = false;
 		}
+	} else {
+		player.shiftTime = 0;
+		player.skating = false;
 	}
     _xv += (_input.right - _input.left) * dt * speed;
     _yv += (_input.down - _input.up) * dt * speed;
-    _xv *= 0.94;
-    _yv *= 0.94
+	if (!player.skating) {
+    	_xv *= 0.94;	
+	    _yv *= 0.94
+	}
 	if (player.denying || player.denied) {
 		const speedLimit = 1;
 		player.xv = Math.min(player.xv, speedLimit);

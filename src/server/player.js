@@ -144,6 +144,9 @@ module.exports = class Player {
 		this.reflecting = false;
 		this.reflectRadius = this.r;
 
+		// ice skate
+		this.skating = false;
+
 		this.usePassives([])
 		// each ability has special properties
 		// and since each player could have all abilities
@@ -848,6 +851,7 @@ module.exports = class Player {
 			reflectRadius: this.reflectRadius,
 			passiveUpgrade: this.passiveUpgrade,
 			activeUpgrade: this.activeUpgrade,
+			skating: this.skating,
 
 			
 			// lastSentInput: this.lastSentInput,
