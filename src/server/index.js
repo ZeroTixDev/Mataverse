@@ -165,6 +165,16 @@ wss.on('connection', (socket, req) => {
 			}
 			if (data.reloading != undefined && players[clientId]) {
 				players[clientId].reloading = Boolean(data.reloading);
+				if (players[clientId].powers.includes('Low Profile') && players[clientId].reloading === true) {
+					const bullets = global.getBullets()
+					for (const bulletId of Object.keys(bullets)) {
+						const bullet = bullets[bulletId];
+						if (bullet.parent != clientId) continue;
+						bullet.life += 0.5;
+						bullet.invis = true;
+						bullet.pChanged = true;
+					}
+				}
 				if (players[clientId].powers.includes('Magz of War') && players[clientId].reloading === false) {
 					players[clientId].magzTime = 1;
 				}

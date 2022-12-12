@@ -77,6 +77,11 @@ const Powers = {
 		color: '#00d9ff',
 		type: 'Passive',
 		desc: 'Upon sprinting for under 0.6s but more than 0.1s, you will begin skating. Your sprint depletes 1.5x faster.'
+	},
+	'Low Profile': {
+		color: '#ff4040',
+		type: 'Passive',
+		desc: 'Upon reloading, all your current bullets will be low-profile and last 0.5s longer than normal. While reloading, your player is 25% smaller.'
 	}
 }
 
@@ -241,6 +246,9 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 			_yv = p.yv;
 		}
 	}
+	// player.r += 1;
+	// player.r = 100;
+	// console.log(player.r)
 	
 							
 	

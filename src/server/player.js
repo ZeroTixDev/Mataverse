@@ -31,7 +31,8 @@ const arraysEqual = (a1, a2) =>
 module.exports = class Player {
     constructor(id, { r }, name, armor, weapon='Pistol') {
         this.id = id;
-        this.r = 32//35//125; //35;
+		this.baseR = 32;
+        this.r = this.baseR//32//35//125; //35;
         this._arena = { r };
 		const angle = Math.random() * 2 * Math.PI
 		const strength = Math.random() * this._arena.r
@@ -606,6 +607,7 @@ module.exports = class Player {
     simulate(dt, players, obstacles) {
         // let oldX = this.x;
         // let oldY = this.y;
+		// this.r += 1;
 		this.currentBulletCooldown += dt;
 		this.currentBulletCooldown = Math.min(this.currentBulletCooldown, this.bulletCooldown);
 
@@ -642,6 +644,14 @@ module.exports = class Player {
 		this.magzTime -= dt;
 		this.iTimer -= dt;
 		this.lTimer -= dt;
+
+		let targetR = this.r;
+		if (this.powers.includes('Low Profile') && this.reloading) {
+			targetR = this.baseR - this.baseR*0.25;
+		} else {
+			targetR = this.baseR
+		}
+		this.r = this.r + (targetR - this.r) * 0.1;
 		// this.bendTimer -= dt;
 		// if (this.bendTimer <= 0) {
 		// 	this.bendTimer = Infinity;

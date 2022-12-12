@@ -775,6 +775,9 @@ async function handleMessage(event, lag = true) {
 			if (pack.y != undefined) {
             	players[pack.id].serverY = pack.y;
 			}
+			if (pack.r != undefined) {
+				players[pack.id].r = pack.r;
+			}
 			if (pack.xv != undefined) {
 				players[pack.id].xv = pack.xv
 			}
@@ -804,7 +807,7 @@ async function handleMessage(event, lag = true) {
 			}
 			if (pack.skating != undefined) {
 				players[pack.id].skating = pack.skating;
-				console.log(pack.skating)
+				// console.log(pack.skating)
 			}
 			if (pack.currentShift != undefined) {
 				players[pack.id].currentShift = pack.currentShift;
@@ -1805,6 +1808,10 @@ function run() {
 		}
 		if (bullet.rev) {
 			ctx.fillStyle = Powers['Bullet Boomerang'].color;
+		}
+		if (bullet.invis) {
+			// ctx.fillStyle = 'red'
+			ctx.globalAlpha = 0.4;
 		}
 		// ctx.beginPath();
 		// ctx.arc(x, y, bullet.r, 0, Math.PI * 2);

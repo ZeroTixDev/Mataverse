@@ -21,6 +21,7 @@ module.exports = class Bullet {
 		this.ping = 0;
 		this.magz = false;
 		this.rev = false;
+		this.invis = false;
 		
         this.pingSim = 0;
 		this.firstSim = false;
@@ -112,6 +113,7 @@ module.exports = class Bullet {
 			magz: this.magz,
 			rev: this.rev,
 			curveFactor: this.curveFactor,
+			invis: this.invis,
         };
     }
 };
