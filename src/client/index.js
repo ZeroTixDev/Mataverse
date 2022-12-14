@@ -805,6 +805,9 @@ async function handleMessage(event, lag = true) {
 			if (pack.shifting != undefined) {
 				players[pack.id].shifting = pack.shifting;
 			}
+			if (pack.preSkating != undefined) {
+				players[pack.id].preSkating = pack.preSkating;
+			}
 			if (pack.skating != undefined) {
 				players[pack.id].skating = pack.skating;
 				// console.log(pack.skating)
@@ -1977,6 +1980,9 @@ function run() {
 		}
 		if (player.skating) {
 			ctx.fillStyle = '#00d9ff';
+		}
+		if (player.preSkating) {
+			ctx.fillStyle = '#007e94'
 		}
         ctx.globalAlpha = 0.3;
 		// if (topPlayers()[0].id == selfId) {

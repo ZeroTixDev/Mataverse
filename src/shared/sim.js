@@ -76,7 +76,7 @@ const Powers = {
 	'Ice Skate': {
 		color: '#00d9ff',
 		type: 'Passive',
-		desc: 'Upon sprinting for under 0.6s but more than 0.1s, you will begin skating. Your sprint depletes 1.5x faster.'
+		desc: 'Upon sprinting for under 0.6s but more than 0.1s, you will begin skating.'
 	},
 	'Low Profile': {
 		color: '#ff4040',
@@ -113,22 +113,32 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 			_shiftRegenTimer = player.shiftRegenTime;
 		}
 		_currentShift = Math.min(_currentShift, player.shiftLength);
+	player.preSkating = false;
 	if (!player.denied && !player.denying) {
 		if (_input.shift && _currentShift > 0) {
 			_shiftRegenTimer = 0;
 			let mult = 1;
 			if (player.powers.includes('Ice Skate')) {
-				mult = 1.5;
+				// mult = 1.5;
 			}
 			_currentShift -= dt*1.5*mult;
 			_currentShift = Math.max(_currentShift, 0);
 			player.shiftTime += dt;
 			let acc = 1;
 			if (player.powers.includes('Ice Skate')
-			   && player.shiftTime >= 0.1 && player.shiftTime <= 0.6) {
-				player.skating = true;
+			   && player.shiftTime >= 0 && player.shiftTime <= 0.4) {
+				// player.skating = true;
+				player.preSkating = true;
 				acc = 0.4;
 				// acc = player.shiftTime + 1.5;
+			} else if (player.powers.includes('Ice Skate')
+				&& player.shiftTime >= 0.4) {
+				acc = 0.4;
+				if (!player.skating) {
+					_xv *= 1.5;
+					_yv *= 1.5;
+				}
+				player.skating = true;
 			} else {
 				player.skating = false;
 			}
@@ -140,6 +150,7 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 	} else {
 		player.shiftTime = 0;
 		player.skating = false;
+		player.preSkating = false;
 	}
     _xv += (_input.right - _input.left) * dt * speed;
     _yv += (_input.down - _input.up) * dt * speed;

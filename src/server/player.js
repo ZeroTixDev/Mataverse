@@ -146,6 +146,7 @@ module.exports = class Player {
 		this.reflectRadius = this.r;
 
 		// ice skate
+		this.preSkating = false;
 		this.skating = false;
 
 		this.usePassives([])
@@ -861,6 +862,7 @@ module.exports = class Player {
 			reflectRadius: this.reflectRadius,
 			passiveUpgrade: this.passiveUpgrade,
 			activeUpgrade: this.activeUpgrade,
+			preSkating: this.preSkating,
 			skating: this.skating,
 
 			
