@@ -81,6 +81,7 @@ const Powers = {
 	'Low Profile': {
 		color: '#ff4040',
 		type: 'Passive',
+		exp: true,
 		desc: 'Upon reloading, all your current bullets will be low-profile and last 0.5s longer than normal. While reloading, your player is 25% smaller.'
 	}
 }
