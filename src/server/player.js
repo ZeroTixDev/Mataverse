@@ -495,7 +495,7 @@ module.exports = class Player {
 		this.stateBuffer[this.currentTick] = statePayload;
 		this.inputBuffer[this.currentTick] = inputPayload;
 		this.shifting = inputPayload.input.shift && this.stateBuffer[this.currentTick].currentShift > 0
-			&& !this.denied;
+			&& !this.denied && (!this.powers.includes('Ice Skate') || this.skating) 
 		this.x = this.stateBuffer[this.currentTick].x;
 		this.y = this.stateBuffer[this.currentTick].y;
 		this.xv = this.stateBuffer[this.currentTick].xv;

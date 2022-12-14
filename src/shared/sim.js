@@ -1,4 +1,4 @@
-/*
+	/*
 his.shiftLength = 3;
 		this.currentShift = 3;
 		this.shiftRegenTimer = 0;
@@ -76,7 +76,7 @@ const Powers = {
 	'Ice Skate': {
 		color: '#00d9ff',
 		type: 'Passive',
-		desc: 'Upon sprinting for under 0.6s but more than 0.1s, you will begin skating.'
+		desc: 'Upon sprinting, you will start ice skating. During the first 0.2s, you move slower than normal. For the next 0.4s, you will start skating and move faster. Sprint depletes 2.5x faster.'
 	},
 	'Low Profile': {
 		color: '#ff4040',
@@ -113,36 +113,35 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 			_shiftRegenTimer = player.shiftRegenTime;
 		}
 		_currentShift = Math.min(_currentShift, player.shiftLength);
-	player.preSkating = false;
 	if (!player.denied && !player.denying) {
 		if (_input.shift && _currentShift > 0) {
 			_shiftRegenTimer = 0;
 			let mult = 1;
 			if (player.powers.includes('Ice Skate')) {
-				// mult = 1.5;
+				mult = 2.5;
+				if (player.shiftTime >= 0.6){
+					mult = 0;
+				}
 			}
 			_currentShift -= dt*1.5*mult;
 			_currentShift = Math.max(_currentShift, 0);
 			player.shiftTime += dt;
 			let acc = 1;
 			if (player.powers.includes('Ice Skate')
-			   && player.shiftTime >= 0 && player.shiftTime <= 0.4) {
-				// player.skating = true;
-				player.preSkating = true;
-				acc = 0.4;
-				// acc = player.shiftTime + 1.5;
-			} else if (player.powers.includes('Ice Skate')
-				&& player.shiftTime >= 0.4) {
-				acc = 0.4;
-				if (!player.skating) {
-					_xv *= 1.5;
-					_yv *= 1.5;
-				}
+			   && player.shiftTime >= 0 && player.shiftTime <= 0.6) {
 				player.skating = true;
+				if (player.shiftTime <= 0.2) {
+					acc = 0.4;
+				}
+				// acc = player.shiftTime + 1.5;
 			} else {
 				player.skating = false;
 			}
-			speed *= 1.5*acc;
+			if (player.powers.includes('Ice Skate') && player.skating) {
+				speed *= 1.5*acc
+			} else if (!player.powers.includes('Ice Skate')) {
+				speed *= 1.5*acc;
+			}
 		} else {
 			player.shiftTime = 0;
 			player.skating = false;
@@ -150,11 +149,10 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 	} else {
 		player.shiftTime = 0;
 		player.skating = false;
-		player.preSkating = false;
 	}
     _xv += (_input.right - _input.left) * dt * speed;
     _yv += (_input.down - _input.up) * dt * speed;
-	if (!player.skating) {
+	if (!player.skating || (player.skating && player.shiftTime <= 0.2)) {
     	_xv *= 0.94;	
 	    _yv *= 0.94
 	}
