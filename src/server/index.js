@@ -175,7 +175,8 @@ wss.on('connection', (socket, req) => {
 						bullet.pChanged = true;
 					}
 				}
-				if (players[clientId].powers.includes('Magz of War') && players[clientId].reloading === false) {
+				if (players[clientId].powers.includes('Magz of War') && players[clientId].reloading === false
+				   && !players[clientId].bending) {
 					players[clientId].magzTime = 1;
 				}
 				if (players[clientId].powers.includes('Shadow Reload')) {
