@@ -13,7 +13,7 @@ global.sendRate = 120;
 // global.gameSpeed = 0.5;
 let timer = 0;
 let globalTick = 0;
-const arena = { r: 800 }; //700
+const arena = { r: 750 }; //700
 global.getBullets = () => bullets;
 let perfAmount = 0;
 // const obstacles = [
