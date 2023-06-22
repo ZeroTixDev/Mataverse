@@ -97,6 +97,9 @@ module.exports = class Player {
 		// this.powers = ['Magz of War', 'Shadow Reload']// of 4;
 		// this.powers = ['Bullet Boomerang']
 		this.powers = []
+
+		this._smg_combo = 0;
+		this._smg_combo_timer = 0;
 		
 		// this.powers = ['Shadow Reload']
 		// this.powers = ['Magz of War']
@@ -609,6 +612,10 @@ module.exports = class Player {
         // let oldX = this.x;
         // let oldY = this.y;
 		// this.r += 1;
+		this._smg_combo_timer += dt;
+		if (this._smg_combo_timer > 1) {
+			this._smg_combo = 0;
+		}
 		this.currentBulletCooldown += dt;
 		this.currentBulletCooldown = Math.min(this.currentBulletCooldown, this.bulletCooldown);
 

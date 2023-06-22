@@ -1,3 +1,4 @@
+
 const wss = require('./setupServer.js')();
 const Player = require('./player.js');
 const Bullet = require('./bullet.js');
@@ -768,7 +769,10 @@ function ServerTick() {
 					damage = Math.min(damage, 30);
 					// damage = Math.round(20 + 10 * (1-(bullet.lifeTimer/bullet.life)));
 				} else if (players[bullet.fromParent].weapon === 'SMG') {
-					damage = Math.round(7 + 2 * ((bullet.lifeTimer/bullet.life)));
+					// damage = Math.round(7 + 2 * ((bullet.lifeTimer/bullet.life)));
+					damage = 4 + Math.min(player[bullet.fromParent]._smg_combo, 3);
+					players[bullet.fromParent]._smg_combo++;
+					players[bullet.fromParent]._smg_combo_timer = 0;
 					// damage = Math.round(3 + 3 * (1-(bullet.lifeTimer/bullet.life)));
 				} else if (players[bullet.fromParent].weapon === 'LMG') {
 					damage = Math.round(8 + 4 * (1-(bullet.lifeTimer/bullet.life)));
