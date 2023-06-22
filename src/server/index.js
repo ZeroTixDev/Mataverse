@@ -770,8 +770,8 @@ function ServerTick() {
 					// damage = Math.round(20 + 10 * (1-(bullet.lifeTimer/bullet.life)));
 				} else if (players[bullet.fromParent].weapon === 'SMG') {
 					// damage = Math.round(7 + 2 * ((bullet.lifeTimer/bullet.life)));
-					damage = 2 + Math.min(players[bullet.fromParent]._smg_combo, 6);
-					players[bullet.fromParent]._smg_combo++;
+					damage = 5 + Math.min(Math.floor(players[bullet.fromParent]._smg_combo), 2);
+					players[bullet.fromParent]._smg_combo+= 0.5;
 					players[bullet.fromParent]._smg_combo_timer = 0;
 					// damage = Math.round(3 + 3 * (1-(bullet.lifeTimer/bullet.life)));
 				} else if (players[bullet.fromParent].weapon === 'LMG') {
