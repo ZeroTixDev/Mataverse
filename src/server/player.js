@@ -613,7 +613,7 @@ module.exports = class Player {
         // let oldY = this.y;
 		// this.r += 1;
 		this._smg_combo_timer += dt;
-		if (this._smg_combo_timer > 1) {
+		if (this._smg_combo_timer > 0.5) {
 			this._smg_combo = 0;
 		}
 		this.currentBulletCooldown += dt;
