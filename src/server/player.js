@@ -137,7 +137,7 @@ module.exports = class Player {
 
 		// denial of sprint
 		this.denialAngle = null;
-		this.denialLength = 450;
+		this.denialLength = 300;
 		this.denialTimer = Infinity;
 		this.denying = false;
 		this.denied = false;
@@ -638,10 +638,10 @@ module.exports = class Player {
 			}
 		}
 		this.denialTimer += dt;
-		if (this.denialTimer >= 0 && this.denialTimer < 4) {
-			this.denialLength = 450 //+ (this.denialTimer/2)*150;
+		if (this.denialTimer >= 0 && this.denialTimer < 5) {
+			this.denialLength = Math.min((this.denialTimer)*200, 400)
 		}
-		if (this.denialTimer >= 4 && this.denialAngle != null) {
+		if (this.denialTimer >= 5 && this.denialAngle != null) {
 			this.denialAngle = null;
 			this.denialTimer = Infinity;
 		}

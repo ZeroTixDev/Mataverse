@@ -66,7 +66,7 @@ const Powers = {
 	'Denial of Sprint': {
 		color: '#ff5900',
 		type: 'Active',
-		desc: 'Upon activation, you will create a visible line in the direction of your gun. Opponents who touch this line cannot sprint or regenerate (same for you). The line lasts 4s max. [12s]'
+		desc: 'Upon activation, you will create a visible line in the direction of your gun. Opponents who touch this line cannot sprint or regenerate (same for you). The line lasts 5s max. [12s]'
 	},
 	'Reflective Reload': {
 		color: '#fff01f',

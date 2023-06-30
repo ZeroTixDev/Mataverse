@@ -2511,12 +2511,12 @@ function run() {
 		}
 
 		if (player.powers.includes('Denial of Sprint') && player.denialAngle != null) {
-			ctx.globalAlpha = player.denying ? 1: 0.25;
+			ctx.globalAlpha = 1;//player.denying ? 1: 0.5;
 			ctx.strokeStyle = Powers['Denial of Sprint'].color;
 			ctx.lineWidth = 5;
 			// ctx.lineWidth = player.r*2;
 			// ctx.lineCap = 'round'
-			ctx.setLineDash([15, 10])
+			// ctx.setLineDash([10, 5])
 			ctx.beginPath();
 			ctx.lineTo(x + Math.cos(player.denialAngle) * player.r, y + Math.sin(player.denialAngle) * player.r);
 			ctx.lineTo(x + Math.cos(player.denialAngle) * (player.r + player.denialLength), y + Math.sin(player.denialAngle) * (player.r + player.denialLength));
