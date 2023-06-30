@@ -639,7 +639,7 @@ module.exports = class Player {
 		}
 		this.denialTimer += dt;
 		if (this.denialTimer >= 0 && this.denialTimer < 5) {
-			this.denialLength = Math.min((this.denialTimer)*200, 400)
+			this.denialLength = 300;//Math.min((this.denialTimer)*200, 400)
 		}
 		if (this.denialTimer >= 5 && this.denialAngle != null) {
 			this.denialAngle = null;
