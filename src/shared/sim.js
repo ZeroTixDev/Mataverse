@@ -38,7 +38,7 @@ const Powers = {
 		color: '#ff4242',
 		// color: '#ffffff',
 		type: 'Active',
-		desc: 'Upon activation, you will create a quantum field at your position that lasts [5s]. Inside this quantum field, bullets can go through walls but bullets created inside a wall will be destroyed. [12s]'
+		desc: 'Upon activation, you will create a quantum field at your position that lasts [6s]. Inside this quantum field, bullets can go through walls but bullets created inside a wall will be destroyed. Faster bullets in quantum zone and slowed in walls. [12s]'
 	},
 	'Bullet Boomerang': {
 		color: '#1fff5a',

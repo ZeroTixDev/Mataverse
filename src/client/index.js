@@ -787,6 +787,9 @@ async function handleMessage(event, lag = true) {
 			if (pack.health != undefined) {
             	players[pack.id].health = pack.health;
 			}
+			if (pack.maxHealth != undefined) {
+				players[pack.id].maxHealth = pack.maxHealth;
+			}
 			if (pack.armor != undefined) {
             	players[pack.id].armor = pack.armor;
 			}
@@ -2035,7 +2038,7 @@ function run() {
 			// }
 		}
         ctx.beginPath();
-        ctx.arc(x, y, player.r * (player.hp / 100), 0, Math.PI * 2);
+        ctx.arc(x, y, player.r * (player.hp / player.maxHealth), 0, Math.PI * 2);
         ctx.fill();
 		
 		
@@ -2086,7 +2089,7 @@ function run() {
 	        ctx.fill();
 			ctx.globalAlpha = 1;
 			ctx.beginPath();
-        	ctx.arc(x, y, player.r * (player.hp / 100), 0, Math.PI * 2);
+        	ctx.arc(x, y, player.r * (player.hp / player.maxHealth), 0, Math.PI * 2);
 	        ctx.fill();
 			 ctx.strokeStyle = '#303030';
        	 	ctx.lineWidth = 2 + (player.armor / 100) * 13; // + armor
@@ -2591,7 +2594,7 @@ function run() {
         outerRadius
     );
     grd.addColorStop(0, 'rgba(255,0,0,0)');
-    grd.addColorStop(1, 'rgba(255,0,0,' + (0.6 - (me().hp / 100)*0.6) + ')');
+    grd.addColorStop(1, 'rgba(255,0,0,' + (0.6 - (me().hp / me().maxHealth)*0.6) + ')');
     ctx.fillStyle = grd;
     ctx.fill();
 
@@ -2780,7 +2783,7 @@ function playerUI() {
 	}
 	ctx.fillRect(canvas.width / 2 - 175, canvas.height - 50, 350 * (player.cshift/player.shiftLength), 25)
 	ctx.fillStyle = '#e31212';
-	ctx.fillRect(canvas.width / 2 - 175, canvas.height - 25, 350 * (player.hp / 100), 25);
+	ctx.fillRect(canvas.width / 2 - 175, canvas.height - 25, 350 * (player.hp / player.maxHealth), 25);
 	ctx.lineWidth = 3;
 	ctx.strokeStyle = 'black'
 	if (me().denied || me().denying) {

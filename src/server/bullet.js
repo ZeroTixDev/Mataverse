@@ -57,6 +57,7 @@ module.exports = class Bullet {
     update(delta, obstacles, players) {
         let dt = delta * globalThis.gameSpeed;
 		let throughWall = false;
+		let speedMult = 1;
 		for (const playerId of Object.keys(players)) {
 			const player = players[playerId];
 			if (player._qf != null) {
@@ -64,14 +65,21 @@ module.exports = class Bullet {
 				const distY = player._qf.y - this.y;
 				if (distX * distX + distY * distY < (this.r + player._qf.r) * (this.r + player._qf.r)) {
 					throughWall = true;	
+					speedMult = 1.5;
 				}
 			}
 		}
-		if (this.touchingObstacles(obstacles) && (!throughWall || !this.firstSim)) {
-			this.toDelete = true;
+		if (this.touchingObstacles(obstacles)) {
+			if (!throughWall || !this.firstSim) {
+				this.toDelete = true;
+			}
+			if (throughWall) {
+				speedMult = 0.75w;
+			}
 		}
-		this.x += Math.cos(this.angle) * this.speed * dt;
-        this.y += Math.sin(this.angle) * this.speed * dt;
+	
+		this.x += Math.cos(this.angle) * this.speed * speedMult * dt;
+        this.y += Math.sin(this.angle) * this.speed * speedMult * dt;
         this.lifeTimer += dt;
 		this.angle += this.curveFactor * dt;
         // if (this.pingSim < this.totalPing && this.firstSim) {

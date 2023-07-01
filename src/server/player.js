@@ -65,7 +65,8 @@ module.exports = class Player {
                   Math.floor(Math.random() * 10);
         this.armor = armor * 50;
         this.maxArmor = this.armor;
-        this.health = 100;
+		this.maxHealth = 150;
+        this.health = this.maxHealth;
         this.timer = 0;
         this.currentTick = 0;
         this.deltaTick = 1 / global.tickRate;
@@ -403,7 +404,7 @@ module.exports = class Player {
 		this.y = this._arena.r + Math.sin(angle) * (strength - this.r)
         // this.x = this.r + Math.random() * (this._arena.w - this.r * 2);
         // this.y = this.r + Math.random() * (this._arena.h - this.r * 2);
-        this.health = 100;
+        this.health = this.maxHealth;
         this.armor = this.maxArmor;
 		this.respawnUnprocessed = true;
 		// this.currentShift = this.shiftLength;
@@ -632,7 +633,7 @@ module.exports = class Player {
 		}
 		if (this._qf != null) {
 			this._qf.t += dt;
-			if (this._qf.t >= 5) {
+			if (this._qf.t >= 6) {
 				this._qf = null;
 				this.dataChange = true;
 			}
@@ -743,10 +744,10 @@ module.exports = class Player {
         let h = this.health;
         let a = this.armor;
 		if (this.regenTimer > this.regenTime) {
-	        if (this.health < 100) {
+	        if (this.health < this.maxHealth) {
 	            this.health += dt * 8;
 	        }
-	        this.health = Math.min(this.health, 100);
+	        this.health = Math.min(this.health, this.maxHealth);
 	        if (this.armor < this.maxArmor) {
 	            this.armor += dt * 8;
 	        }
@@ -860,6 +861,7 @@ module.exports = class Player {
 			accurateNext: this.accurateNext,
 			_qf: {...this._qf},
 			bending: this.bending,
+			maxHealth: this.maxHealth,
 			_bendCurve: {...this._bendCurve},
 			denialAngle: this.denialAngle,
 			denialLength: this.denialLength,

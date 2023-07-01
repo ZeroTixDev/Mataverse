@@ -819,7 +819,7 @@ function ServerTick() {
                     if (players[bullet.parent] != undefined) {
                         players[bullet.parent].kills++;
                         players[bullet.parent].dataChange = true;
-						players[bullet.parent].health = 100;
+						players[bullet.parent].health = players[bullet.parent].maxHealth;
 						players[bullet.parent].armor = players[bullet.parent].maxArmor;
                         player.dataChange = true;
                     }
