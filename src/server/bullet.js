@@ -74,7 +74,7 @@ module.exports = class Bullet {
 				this.toDelete = true;
 			}
 			if (throughWall) {
-				speedMult = 0.75w;
+				speedMult = 0.75;
 			}
 		}
 	
