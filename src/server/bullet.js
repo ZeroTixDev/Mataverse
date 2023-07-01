@@ -80,7 +80,7 @@ module.exports = class Bullet {
 	
 		this.x += Math.cos(this.angle) * this.speed * speedMult * dt;
         this.y += Math.sin(this.angle) * this.speed * speedMult * dt;
-        this.lifeTimer += dt;
+        this.lifeTimer += dt * speedMult;
 		this.angle += this.curveFactor * dt;
         // if (this.pingSim < this.totalPing && this.firstSim) {
         //     let a = this.pingSim;
