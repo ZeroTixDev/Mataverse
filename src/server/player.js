@@ -65,7 +65,7 @@ module.exports = class Player {
                   Math.floor(Math.random() * 10);
         this.armor = armor * 50;
         this.maxArmor = this.armor;
-		this.maxHealth = 150;
+		this.maxHealth = 100;
         this.health = this.maxHealth;
         this.timer = 0;
         this.currentTick = 0;
