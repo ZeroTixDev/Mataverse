@@ -110,7 +110,8 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 
 	_shiftRegenTimer += dt;
 		if (_shiftRegenTimer >= player.shiftRegenTime) {
-			_currentShift += dt*1.2;
+			let mult = player.powers.includes('Ice Skate') ? 0.75: 1;
+			_currentShift += dt*1.2*mult;
 			_shiftRegenTimer = player.shiftRegenTime;
 		}
 		_currentShift = Math.min(_currentShift, player.shiftLength);
