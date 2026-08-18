@@ -13,9 +13,9 @@ global.sendRate = 120;
 // global.gameSpeed = 0.5;
 let timer = 0;
 let globalTick = 0;
-const arena = { r: 1600, baseR: 1600, minR: 0 };
+const arena = { r: 2000, baseR: 2000, minR: 0 };
 // round/storm cycle: arena shrinks over ROUND_TIME, then winner + reset
-const ROUND_TIME = 120;
+const ROUND_TIME = 180;
 let roundTimer = ROUND_TIME;
 global.getBullets = () => bullets;
 let perfAmount = 0;
@@ -34,21 +34,21 @@ let perfAmount = 0;
 // ];
 // const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":300,"y":300,"width":200,"height":200,"type":"obstacle"},{"x":1100,"y":300,"width":200,"height":200,"type":"obstacle"},{"x":700,"y":700,"width":200,"height":200,"type":"obstacle"},{"x":300,"y":1100,"width":200,"height":200,"type":"obstacle"},{"x":1100,"y":1100,"width":200,"height":200,"type":"obstacle"},{"x":700,"y":500,"width":50,"height":200,"type":"obstacle"},{"x":850,"y":900,"width":50,"height":200,"type":"obstacle"}],"blocks":[],"arena":{"width":1600,"height":1600}}')
 
-// 3200x3200 arena: open center for late game, inner ring with diagonal gaps,
+// 4000x4000 arena: open center for late game, inner ring with diagonal gaps,
 // corner blocks, cardinal pillars
 const obstacles = [
-	new Obstacle(1120, 880, 960, 30),
-	new Obstacle(1120, 2272, 960, 30),
-	new Obstacle(880, 1120, 30, 960),
-	new Obstacle(2272, 1120, 30, 960),
-	new Obstacle(528, 528, 224, 224),
-	new Obstacle(2448, 528, 224, 224),
-	new Obstacle(528, 2448, 224, 224),
-	new Obstacle(2448, 2448, 224, 224),
-	new Obstacle(1576, 320, 30, 352),
-	new Obstacle(1576, 2528, 30, 352),
-	new Obstacle(320, 1576, 352, 30),
-	new Obstacle(2528, 1576, 352, 30),
+	new Obstacle(1400, 1100, 1200, 30),
+	new Obstacle(1400, 2840, 1200, 30),
+	new Obstacle(1100, 1400, 30, 1200),
+	new Obstacle(2840, 1400, 30, 1200),
+	new Obstacle(660, 660, 280, 280),
+	new Obstacle(3060, 660, 280, 280),
+	new Obstacle(660, 3060, 280, 280),
+	new Obstacle(3060, 3060, 280, 280),
+	new Obstacle(1970, 400, 30, 440),
+	new Obstacle(1970, 3160, 30, 440),
+	new Obstacle(400, 1970, 440, 30),
+	new Obstacle(3160, 1970, 440, 30),
 ];
 // const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":600,"y":1200,"width":200,"height":200,"type":"obstacle"},{"x":0,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":600,"y":0,"width":200,"height":200,"type":"obstacle"},{"x":1200,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":650,"y":650,"width":100,"height":100,"type":"obstacle"}],"blocks":[],"arena":{"width":1400,"height":1400}}')
 
@@ -163,6 +163,16 @@ wss.on('connection', (socket, req) => {
 			if (data.chatMessage != undefined) {
 				players[clientId]?.sendChat(data.chatMessage)
 				console.log(players[clientId].name, data.chatMessage)
+				// global chat: relay to everyone in game (commands stay private)
+				if (players[clientId] != undefined && typeof data.chatMessage === 'string' && !data.chatMessage.startsWith('/')) {
+					const text = String(data.chatMessage).slice(0, 60);
+					if (text.trim().length > 0) {
+						for (const id of Object.keys(clients)) {
+							if (clients[id].menu) continue;
+							send(id, { chat: { name: players[clientId].name, text } });
+						}
+					}
+				}
 			}
 			if (data.activate != undefined && players[clientId]) {
 				players[clientId].activate(players);
@@ -515,6 +525,7 @@ function ServerTick() {
 		const roundEnd = {
 			name: winner != null && winner.kills > 0 ? winner.name : null,
 			kills: winner != null ? winner.kills : 0,
+			dmg: winner != null ? Math.round(winner.totalDamage) : 0,
 		};
 		for (const id of Object.keys(clients)) {
 			if (clients[id].menu) continue;

@@ -33,11 +33,12 @@ const bullets = {};
 let state = 'menu';
 
 // storm round state (synced from server)
-let roundTime = 120;
+let roundTime = 180;
 let targetArenaR = null;
 let winnerTimer = 0;
 let winnerName = null;
 let winnerKills = 0;
+let winnerDmg = 0;
 
 let showPassives = false;
 let showActives = false;
@@ -97,7 +98,8 @@ ws.onclose = () => {
 ws.onmessage = handleMessage;
 
 
-const chatContainer = document.querySelector('.chat-div')
+const chatContainer = document.querySelector('.chat-box')
+const chatMessagesDiv = document.querySelector('.chat-messages')
 const chatForm = document.querySelector('.chat-form')
 const chatInput = document.querySelector('.chat-input')
 const playerCountSpan = document.querySelector('.player-count');
@@ -108,7 +110,26 @@ const usernameForm = document.querySelector('.username-form');
 const powerDiv = document.querySelector(".power-div")
 usernameInput.focus()
 usernameInput.value = savedName;
-window.chatOpen = () => !chatContainer.classList.contains('hidden')
+window.chatOpen = () => document.activeElement === chatInput;
+// append a line to the global chat feed (textContent only - no HTML injection)
+function addChatLine(name, text, system = false) {
+	const line = document.createElement('div');
+	line.className = 'chat-line' + (system ? ' chat-system' : '');
+	if (name != null) {
+		const nameSpan = document.createElement('span');
+		nameSpan.className = 'chat-name';
+		nameSpan.textContent = name;
+		line.appendChild(nameSpan);
+		line.appendChild(document.createTextNode(': ' + text));
+	} else {
+		line.textContent = text;
+	}
+	chatMessagesDiv.appendChild(line);
+	while (chatMessagesDiv.children.length > 50) {
+		chatMessagesDiv.removeChild(chatMessagesDiv.firstChild);
+	}
+	chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+}
 function getArmorType() {
     for (const armor of Array.from(armors)) {
         if (armor.classList.contains('a-select')) {
@@ -754,7 +775,16 @@ async function handleMessage(event, lag = true) {
 		winnerTimer = 4;
 		winnerName = data.roundEnd.name;
 		winnerKills = data.roundEnd.kills;
+		winnerDmg = data.roundEnd.dmg ?? 0;
 		addShake(6, 0.2);
+		if (winnerName != null) {
+			addChatLine(null, `👑 ${winnerName} won the round — ${winnerKills} kill${winnerKills === 1 ? '' : 's'}, ${winnerDmg} damage`, true);
+		} else {
+			addChatLine(null, 'Round over — no kills. Fresh round starting!', true);
+		}
+	}
+	if (data.chat != undefined) {
+		addChatLine(data.chat.name, data.chat.text);
 	}
 	if (data.obstacles != undefined) {
 		obstacles = data.obstacles;
@@ -802,6 +832,12 @@ async function handleMessage(event, lag = true) {
             send({ angle  });
         });
         window.addEventListener('mousedown', (e) => {
+			if (e.target === chatInput) return;
+			if (chatOpen()) {
+				chatInput.blur();
+				send({ typing: false });
+				return;
+			}
 			if (e.which === 3 || e.button === 2) {
 				if (players[selfId] && !me().reloading && me().ammo !== Weapons[me().weapon].ammo) {
 					me().reloading = true;
@@ -1174,6 +1210,11 @@ chatForm.addEventListener('submit', (e) => {
 	if (text.length > 0) {
 		send({ chatMessage: text });
 	}
+	chatInput.blur();
+	if (players[selfId]) {
+		me().typing = false;
+	}
+	send({ typing: false });
 })
 let showStat = false;
 
@@ -1251,16 +1292,19 @@ function trackKeys(event) {
 	if (event.code === 'Space' && event.type === 'keydown' && !chatOpen() && state == 'game') {
 		send({ activate: true });
 	}
-	if (event.code === 'Enter' && state == 'game' && event.type === 'keydown') {
-		chatContainer.classList.toggle('hidden')
-		if (!chatContainer.classList.contains('hidden')) {
-			chatInput.focus()
-			send({ typing: true })
-			me().typing = true;
-		} else {
-			me().typing = false
-			send({ typing: false })
+	if (event.code === 'Enter' && state == 'game' && event.type === 'keydown' && !chatOpen()) {
+		event.preventDefault();
+		chatInput.focus()
+		send({ typing: true })
+		me().typing = true;
+	}
+	if (event.code === 'Escape' && event.type === 'keydown' && chatOpen()) {
+		chatInput.value = '';
+		chatInput.blur();
+		if (players[selfId]) {
+			me().typing = false;
 		}
+		send({ typing: false });
 	}
 }
 
@@ -2922,7 +2966,7 @@ function run() {
 		ctx.fillStyle = '#ffcc00';
 		ctx.fillText(wText, canvas.width / 2, canvas.height / 2 - 130);
 		ctx.font = '600 18px Inter, Arial';
-		const wSub = winnerName != null ? `${winnerKills} kill${winnerKills === 1 ? '' : 's'}` : 'no kills this round';
+		const wSub = winnerName != null ? `${winnerKills} kill${winnerKills === 1 ? '' : 's'} · ${winnerDmg} damage` : 'no kills this round';
 		ctx.lineWidth = 3;
 		ctx.strokeText(wSub, canvas.width / 2, canvas.height / 2 - 92);
 		ctx.fillStyle = '#e8eaf0';
