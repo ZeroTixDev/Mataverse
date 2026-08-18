@@ -2104,7 +2104,7 @@ function run() {
         let y = offsetY(bullet.y)
 		// per-weapon rounds: mostly black, shotgun keeps a darker version of its color
 		const bWeapon = players[bullet.parent] != undefined ? players[bullet.parent].weapon : null;
-		let bColor = '#17181d';
+		let bColor = '#0a0b0e';
 		let bLenMult = 2.1;
 		let bWidthMult = 1.15;
 		let bShape = 'tracer';
@@ -2172,9 +2172,9 @@ function run() {
 			ctx.moveTo(x - bCos * bLen / 2, y - bSin * bLen / 2);
 			ctx.lineTo(x + bCos * bLen / 2, y + bSin * bLen / 2);
 			ctx.stroke();
-			ctx.fillStyle = 'rgba(255, 245, 210, 0.9)';
+			ctx.fillStyle = '#ffffff';
 			ctx.beginPath();
-			ctx.arc(x + bCos * bLen / 2, y + bSin * bLen / 2, Math.max(bullet.r * 0.45, 1.2), 0, Math.PI * 2);
+			ctx.arc(x + bCos * bLen / 2, y + bSin * bLen / 2, Math.max(bullet.r * 0.5, 1.4), 0, Math.PI * 2);
 			ctx.fill();
 			ctx.lineCap = 'butt';
 		}
@@ -3165,21 +3165,20 @@ function playerUI() {
 	const denied = me().denied || me().denying;
 	const sprintFrac = Math.max(Math.min(player.cshift / player.shiftLength, 1), 0);
 	ctx.fillStyle = '#171a20';
-	fillRoundRect(barX, canvas.height - 24, barW, 9, 4.5);
+	fillRoundRect(barX, canvas.height - 26, barW, 13, 6);
 	if (sprintFrac > 0.01) {
 		ctx.fillStyle = denied ? '#ff6b3d' : '#ffc42e';
-		fillRoundRect(barX + 1.5, canvas.height - 22.5, Math.max((barW - 3) * sprintFrac, 8), 6, 3);
+		fillRoundRect(barX + 2, canvas.height - 24, Math.max((barW - 4) * sprintFrac, 10), 9, 4);
 	}
-	// plain, larger Inter text - no outlines
+	// uniform left-aligned Inter numbers - no outlines, no percent signs
 	ctx.textBaseline = 'middle';
+	ctx.textAlign = 'left';
+	ctx.font = '700 15px Inter, Arial';
 	ctx.fillStyle = '#ffffff';
-	ctx.font = '700 16px Inter, Arial';
-	ctx.textAlign = 'left';
 	ctx.fillText(`${Math.round(player.hp)}`, barX + 12, canvas.height - 41);
-	ctx.font = '700 12px Inter, Arial';
-	ctx.textAlign = 'right';
-	ctx.fillText(`${Math.round(sprintFrac * 100)}%`, barX + barW - 10, canvas.height - 19.5);
-	ctx.textAlign = 'left';
+	ctx.font = '700 11px Inter, Arial';
+	ctx.fillStyle = sprintFrac > 0.08 ? '#1a1c22' : '#ffffff';
+	ctx.fillText(`${Math.round(sprintFrac * 100)}`, barX + 12, canvas.height - 19.5);
 	// ctx.globalAlpha = 0.75
 	// ctx.fillStyle = 'black';
 	// // ctx.globalAlpha = 0.4;
