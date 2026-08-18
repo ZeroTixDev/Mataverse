@@ -15,6 +15,7 @@ const Weapons = {
 	Burst: { cooldown: 1.1, gunWidth: 4, gunHeight: 2.4, ammo: 18, reloadTime: 2.75, err: 20, color: '#6e0400', recoil: 1, rrAmmo: 6},
 	SMG: { cooldown: 0.07, gunWidth: 3, gunHeight: 1.6, ammo: 24, reloadTime: /*1.75*/1.75, err: 40, color: '#090152'/*'#043f7a'*/, recoil: 0.5, rrAmmo: 0},
 	LMG: { cooldown: 0.13, gunWidth: 6.5, gunHeight: 2, ammo: 75, reloadTime: 4.5, err: 35, color: '#00332d', recoil: 0},
+	Energy: { cooldown: 0.55, gunWidth: 6, gunHeight: 2, ammo: 40, reloadTime: 3, err: 10, color: '#7b2ff2', recoil: 0},
 }
 
 const Powers = {
@@ -188,6 +189,7 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 			let p2x = player2.x;
 			let p2y = player2.y;
 	        if (player2.id === player.id) continue;
+			if (player2.eliminated) continue; // BR spectators don't collide
 			if (globalThis.onClient) {
 				// player x/ys in client are smoothed, must use server pos
 				p2x = player2.serverX;
@@ -228,6 +230,7 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
 		for (const key of Object.keys(players)) {
 			const player2 = players[key];
 			if (player.id == player2.id) continue;
+			if (player2.eliminated) continue;
 			if (doesLineInterceptCircle(
 				{x: player.x + Math.cos(player.denialAngle) * player.r,
 				y: player.y + Math.sin(player.denialAngle) * player.r },
