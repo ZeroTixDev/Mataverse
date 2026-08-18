@@ -288,10 +288,10 @@ function gunRects(weapon, bx, by, w, L) {
 
 function drawGunShape(weapon, bx, by, w, L, accent) {
 	const rects = gunRects(weapon, bx, by, w, L);
-	// bright rim pass behind the shapes so guns read on the dark floor
-	ctx.fillStyle = '#cfd6e4';
+	// subtle light rim behind the shapes so guns read on the dark floor
+	ctx.fillStyle = 'rgba(207, 214, 228, 0.5)';
 	for (const r of rects) {
-		ctx.fillRect(r.x - 1.5, r.y - 1.5, r.w + 3, r.h + 3);
+		ctx.fillRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
 	}
 	for (const r of rects) {
 		ctx.fillStyle = r.c;
@@ -1319,7 +1319,7 @@ function trackKeys(event) {
 		let tileImgs = {};
 
 function createTileImg(color) {
-    const tileSize = (100/3);
+    const tileSize = 50;
     const w = canvas.width + tileSize;
     const h = canvas.height + tileSize;
 
@@ -1352,7 +1352,7 @@ function drawTiles(color) {
     const pos = offset(camera.x, camera.y);
     const gridOffset = offset(-canvas.width/2,-canvas.height/2);
     //ctx.translate(pos.x , pos.y + (gridOffset.y % 50));
-    ctx.drawImage(img, 0 + ((gridOffset.x) % (100/3)), 0 + ((gridOffset.y) % (100/3)));
+    ctx.drawImage(img, 0 + ((gridOffset.x) % 50), 0 + ((gridOffset.y) % 50));
     //ctx.translate(-pos.x - (gridOffset.x % 50), -pos.y - (gridOffset.y % 50));
 }
 
@@ -2376,20 +2376,35 @@ function run() {
 		ctx.globalAlpha = 1;
 
 		if (player.powers.includes('Reflective Reload') && player.reflecting) {
-			ctx.lineWidth = 10;
-			ctx.strokeStyle = Powers['Reflective Reload'].color
-			// ctx.fillStyle = ctx.strokeStyle;
+			// energy shield: soft wedge fill, glowing arc, bright inner edge
+			const rrColor = Powers['Reflective Reload'].color;
+			ctx.save();
 			ctx.translate(x, y);
 			ctx.rotate(player.angle);
-			ctx.beginPath()
-			ctx.arc(0, 0, player.reflectRadius, -Math.PI/2, Math.PI/2);
-			ctx.stroke()
-			ctx.lineWidth = 4;
-			ctx.strokeStyle = 'black'
-			ctx.stroke()
-			// ctx.fill()
-			ctx.rotate(-player.angle);
-			ctx.translate(-x, -y)
+			ctx.globalAlpha = 0.12;
+			ctx.fillStyle = rrColor;
+			ctx.beginPath();
+			ctx.moveTo(0, 0);
+			ctx.arc(0, 0, player.reflectRadius, -Math.PI / 2, Math.PI / 2);
+			ctx.closePath();
+			ctx.fill();
+			ctx.globalAlpha = 1;
+			ctx.strokeStyle = rrColor;
+			ctx.lineWidth = 6;
+			ctx.lineCap = 'round';
+			ctx.shadowColor = rrColor;
+			ctx.shadowBlur = 14;
+			ctx.beginPath();
+			ctx.arc(0, 0, player.reflectRadius, -Math.PI / 2, Math.PI / 2);
+			ctx.stroke();
+			ctx.shadowBlur = 0;
+			ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+			ctx.lineWidth = 2;
+			ctx.beginPath();
+			ctx.arc(0, 0, Math.max(player.reflectRadius - 4, 1), -Math.PI / 2, Math.PI / 2);
+			ctx.stroke();
+			ctx.lineCap = 'butt';
+			ctx.restore();
 		}
         // ctx.fillStyle = '#303030';
 		ctx.fillStyle = 'black'
@@ -2522,12 +2537,10 @@ function run() {
 				ctx.globalAlpha = 1;
 			}
 			ctx.rotate(-(currentAngle - Math.PI / 2))
-			if (player.powers.includes('Reflective Reload') && !me().reloading &&
-			   me().ammo <= (Weapons[me().weapon].rrAmmo ?? 0) && playerId == selfId) {
-				ctx.fillStyle = Powers['Reflective Reload'].color;
-				ctx.fillRect(player.r + 4 - gunWidth-10, player.r + 2 - 10, 20, 20)
-			}
-			ctx.fillStyle = '#e8eaf0';
+			// Reflective Reload ready: tint the ammo count itself instead of boxing it
+			const rrReady = player.powers.includes('Reflective Reload') && !me().reloading &&
+			   me().ammo <= (Weapons[me().weapon].rrAmmo ?? 0) && playerId == selfId;
+			ctx.fillStyle = rrReady ? Powers['Reflective Reload'].color : '#e8eaf0';
 			ctx.font = '500 20px Inter, Arial';
 			ctx.textAlign = 'center';
 			if (player.lCharge) {
