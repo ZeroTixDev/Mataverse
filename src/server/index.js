@@ -996,7 +996,8 @@ function ServerTick() {
 				} else if (players[bullet.fromParent].weapon === 'LMG') {
 					damage = Math.round(8 + 4 * (1-(bullet.lifeTimer/bullet.life)));
 				} else if (players[bullet.fromParent].weapon === 'Energy') {
-					damage = 9;
+					// rewards long-range hits: 12 up close, up to 15 at max range
+					damage = Math.min(Math.round(12 + 3 * (bullet.lifeTimer / bullet.life)), 15);
 				}
 				let mult = 1;
 				if (bullet.magz || bullet.rev) {
@@ -1006,7 +1007,7 @@ function ServerTick() {
 				damage = Math.round(damage)
                 player.takeDamage(damage);
 				// impact knockback along the shot direction, heavier hits shove harder
-				const knock = Math.min(4, 1.2 + damage * 0.03);
+				const knock = Math.min(0.8, 0.24 + damage * 0.006);
 				player.xv += Math.cos(bullet.angle) * knock;
 				player.yv += Math.sin(bullet.angle) * knock;
                 send(bullet.parent, {
