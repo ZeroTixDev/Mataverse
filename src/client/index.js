@@ -595,13 +595,12 @@ async function handleMessage(event, lag = true) {
 	if (data.powerMenu != undefined) {
 		console.log(data.powerMenu)
 		powerDiv.innerHTML = ''
-		powerDiv.style.width = 75 * Object.keys(data.powerMenu).length + 25 + 'px'
 		const powerNames = Object.keys(data.powerMenu)
 		powerNames.sort((a, b) => hexToHSL(data.powerMenu[a].color)[0] - hexToHSL(data.powerMenu[b].color)[0]);
-		// console.log(hexToHSL(Weapons[sortedWeapons[0]].color))
+		const titleCase = (s) => s.split(' ').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
 		for (const powerName of powerNames) {
 			powerDiv.innerHTML += `
-		 		<span class="power" style="color: black;background: ${data.powerMenu[powerName].color} !important;">${powerName[0]}</span>`
+		 		<span class="power" style="color: black;background: ${data.powerMenu[powerName].color} !important;" title="${data.powerMenu[powerName].desc}">${titleCase(powerName)}</span>`
 		}
 		let first = true;
 		const gunDiv = document.querySelector('.gun-div')
@@ -799,13 +798,13 @@ async function handleMessage(event, lag = true) {
 			// 	let powerWidth = 50 + (string.length-1)*50;
 			// 	width += powerWidth;
 			// })
-			// ctx.font = '20px Work Sans'
+			// ctx.font = '20px Inter'
 			// ctx.fillStyle = 'black'
 			// // string.length -= 3;
 			// ctx.globalAlpha = showPassives? 0.75: 0.5;
 			// ctx.fillRect(canvas.width /2 - 175 - 50/2 - width/2, canvas.height - 100, width, 50)
 			// ctx.globalAlpha = 1;
-			// ctx.font = '40px Work Sans';
+			// ctx.font = '40px Inter';
 			// let x = 0;
 			// passives.forEach((name) => {
 			// 	ctx.globalAlpha = showPassives ? 1: 0.5;
@@ -821,7 +820,7 @@ async function handleMessage(event, lag = true) {
 			// 	ctx.fillText(string, canvas.width / 2 - 175 - 50/2 - width/2 + x + pWidth/2, canvas.height - 100+50/2);
 			// 	if (!touchingBox) {
 			// 		if (rectContainsPoint(canvas.width / 2 - 175 - 50/2 - width/2 + x, canvas.height - 100, pWidth, 50, window.mx, window.my)) {
-			// 			ctx.font = '30px Work Sans';
+			// 			ctx.font = '30px Inter';
 			// 			const nw = ctx.measureText(name).width;
 			// 			ctx.fillStyle = Powers[name].color;
 			// 			ctx.globalAlpha = 0.5;
@@ -829,7 +828,7 @@ async function handleMessage(event, lag = true) {
 			// 			ctx.globalAlpha = 1;
 			// 			ctx.fillStyle = 'black'
 			// 			ctx.fillText(name, canvas.width / 2 - 175 - 50/2 - width/2 + x + pWidth/2, canvas.height-100-25)
-			// 			ctx.font = '40px Work Sans';
+			// 			ctx.font = '40px Inter';
 			// 		}
 			// 	}
 			// 	x += pWidth
@@ -1828,7 +1827,7 @@ function run() {
     if (!arena) {
         // loading screen
         ctx.fillStyle = '#e8e8e8';
-        ctx.font = '100px Work Sans, Arial';
+        ctx.font = '100px Inter, Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('Joining game...', canvas.width / 2, canvas.height / 2);
@@ -2092,28 +2091,41 @@ function run() {
 			x = offsetX(player.invisX);
 			y = offsetY(player.invisY);
 		}
-		let baseColor = playerId == selfId ? '#31a2f2' : '#f0563f';
+		// black body; outline color tells you who they are (blue = you, red = enemy)
+		const bodyColor = '#0d0e12';
+		let outlineColor = playerId == selfId ? '#31a2f2' : '#f0453a';
 		if (player.shifting) {
-			baseColor = '#ffa726';
+			outlineColor = '#ffa726';
 		}
 		if (player.skating) {
-			baseColor = '#00d9ff';
+			outlineColor = '#00d9ff';
 		}
 		if (player.preSkating) {
-			baseColor = '#0097a7';
+			outlineColor = '#0097a7';
 		}
 		if (player.powers.includes('Magz of War') && player.magz) {
-			baseColor = '#5c6bc0';
+			outlineColor = '#5c6bc0';
 		}
 		if (player.lCharge) {
-			baseColor = '#ff1744';
+			outlineColor = '#ff1744';
 		}
-		// gold halo for the current leader
+		// crown above the current leader
 		if (topPlayers()[0].id == playerId && Object.keys(players).length > 1) {
-			ctx.strokeStyle = '#ffcc00';
-			ctx.lineWidth = 4;
+			const crownY = y - player.r - 20;
+			ctx.lineJoin = 'round';
 			ctx.beginPath();
-			ctx.arc(x, y, player.r + 7, 0, Math.PI * 2);
+			ctx.moveTo(x - 15, crownY + 8);
+			ctx.lineTo(x - 15, crownY - 5);
+			ctx.lineTo(x - 7, crownY + 1);
+			ctx.lineTo(x, crownY - 9);
+			ctx.lineTo(x + 7, crownY + 1);
+			ctx.lineTo(x + 15, crownY - 5);
+			ctx.lineTo(x + 15, crownY + 8);
+			ctx.closePath();
+			ctx.fillStyle = '#ffcc00';
+			ctx.fill();
+			ctx.strokeStyle = '#c79a00';
+			ctx.lineWidth = 2;
 			ctx.stroke();
 		}
 		let bodyAlpha = 1;
@@ -2122,21 +2134,19 @@ function run() {
 		} else if (player.invis && player.powers.includes('Shadow Reload')) {
 			bodyAlpha = 0.25;
 		}
-		// faded full-size body shows missing health
-		ctx.globalAlpha = Math.min(0.3, bodyAlpha);
-		ctx.fillStyle = baseColor;
+		// faded full-size disk shows missing health
+		ctx.globalAlpha = Math.min(0.16, bodyAlpha);
+		ctx.fillStyle = outlineColor;
         ctx.beginPath();
         ctx.arc(x, y, player.r, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = bodyAlpha;
+		ctx.fillStyle = bodyColor;
         ctx.beginPath();
         ctx.arc(x, y, player.r * (player.hp / 100), 0, Math.PI * 2);
         ctx.fill();
-		// darker same-hue outline, thickened by armor
-        ctx.strokeStyle = shadeColor(baseColor, -32);
-		if (player.lCharge) {
-			ctx.strokeStyle = 'red'
-		}
+		// colored identity outline, thickened by armor
+        ctx.strokeStyle = outlineColor;
 		if (player.accurateNext) {
 			ctx.strokeStyle = 'blue'
 		}
@@ -2168,19 +2178,17 @@ function run() {
 		if (player.invis && playerId == selfId) {
 			x = offsetX(player.invisX);
 			y = offsetY(player.invisY);
-			 ctx.fillStyle = '#d11d1d';
-			if (player.shifting	) {
-				ctx.fillStyle = '#ff7700'
-			}
-	        ctx.globalAlpha = 0.3;
+			 ctx.fillStyle = '#f0453a';
+	        ctx.globalAlpha = 0.16;
 			ctx.beginPath();
         	ctx.arc	(x, y, player.r, 0, Math.PI * 2);
 	        ctx.fill();
 			ctx.globalAlpha = 1;
+			ctx.fillStyle = '#0d0e12';
 			ctx.beginPath();
         	ctx.arc(x, y, player.r * (player.hp / 100), 0, Math.PI * 2);
 	        ctx.fill();
-			 ctx.strokeStyle = '#303030';
+			 ctx.strokeStyle = '#f0453a';
        	 	ctx.lineWidth = 2 + (player.armor / 100) * 13; // + armor
 	        ctx.beginPath();
 	        ctx.arc(x, y, player.r - ctx.lineWidth/2 + 1, 0, Math.PI * 2);
@@ -2194,7 +2202,7 @@ function run() {
 		// 	ctx.fillStyle = '#7d7d7d'
 		// }
 		ctx.globalAlpha = 1;
-        ctx.font = '18px Work Sans, Arial';
+        ctx.font = '18px Inter, Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 		if (player.lCharge) {
@@ -2243,10 +2251,10 @@ function run() {
 				}
 			}
 			// Evades-style name: white with dark outline
-			ctx.font = 'bold 18px Work Sans, Arial';
+			ctx.font = '300 18px Inter, Arial';
 			ctx.lineJoin = 'round';
 			ctx.strokeStyle = 'rgba(30, 33, 38, 0.85)';
-			ctx.lineWidth = 4;
+			ctx.lineWidth = 3;
 			ctx.strokeText(player.name, x, y + player.r * 1.5);
 			ctx.fillStyle = 'white';
 			ctx.fillText(player.name, x, y + player.r * 1.5);
@@ -2342,7 +2350,7 @@ function run() {
 				ctx.fillRect(player.r + 4 - gunWidth-10, player.r + 2 - 10, 20, 20)
 			}
 			ctx.fillStyle = '#e8eaf0';
-			ctx.font = '20px Work Sans, Arial';
+			ctx.font = '20px Inter, Arial';
 			ctx.textAlign = 'center';
 			if (player.lCharge) {
 				ctx.fillStyle = 'red'
@@ -2387,7 +2395,7 @@ function run() {
 			// 	}
 			// }
 			ctx.fillStyle = '#e8eaf0';
-			ctx.font = '20px Work Sans, Arial';
+			ctx.font = '20px Inter, Arial';
 			ctx.textAlign = 'center';
 			if (player.lCharge) {
 				ctx.fillStyle = 'red'
@@ -2478,7 +2486,7 @@ function run() {
 					// }
 				// }
 				// ctx.fillStyle = 'black';
-				// ctx.font = '20px Work Sans, Arial';
+				// ctx.font = '20px Inter, Arial';
 				// ctx.textAlign = 'center';
 				// if (player.lCharge) {
 				// 	ctx.fillStyle = 'red'
@@ -2519,7 +2527,7 @@ function run() {
 				// 	}
 				// }
 				// ctx.fillStyle = 'black';
-				// ctx.font = '20px Work Sans, Arial';
+				// ctx.font = '20px Inter, Arial';
 				// ctx.textAlign = 'center';
 				// if (player.lCharge) {
 				// 	ctx.fillStyle = 'red'
@@ -2564,7 +2572,7 @@ function run() {
 		if (player.chatMessageTimer > 0) {
 			ctx.globalAlpha = Math.min(player.chatMessageTimer < 1 ? player.chatMessageTimer/1: 0.9, 0.9);
 			ctx.fillStyle = '#303030';
-			ctx.font = '20px Work Sans, Arial';
+			ctx.font = '20px Inter, Arial';
 	        ctx.textAlign = 'center';
 	        ctx.textBaseline = 'middle';
 			const width = ctx.measureText(player.chatMessage).width;
@@ -2576,7 +2584,7 @@ function run() {
 		} else if (player.typing) {
 			ctx.globalAlpha = 0.9;
 			ctx.fillStyle = '#303030';
-			ctx.font = '20px Work Sans, Arial';
+			ctx.font = '20px Inter, Arial';
 	        ctx.textAlign = 'center';
 	        ctx.textBaseline = 'middle';
 			const width = ctx.measureText('...').width;
@@ -2653,12 +2661,12 @@ function run() {
 		if (!server || t > 0.8) continue;
 		const rise = t * 45;
 		ctx.globalAlpha = t < 0.1 ? t / 0.1 : (t > 0.6 ? Math.max(1 - (t - 0.6) / 0.2, 0) : 1);
-        ctx.font = 'bold 26px Work Sans, Arial';
+        ctx.font = '300 26px Inter, Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 		ctx.lineJoin = 'round';
 		ctx.strokeStyle = 'rgba(30, 33, 38, 0.9)';
-		ctx.lineWidth = 5;
+		ctx.lineWidth = 3;
 		ctx.strokeText(`-${dmg}`, offsetX(x), offsetY(y) - rise);
 		ctx.fillStyle = '#ffd54f';
 		ctx.fillText(`-${dmg}`, offsetX(x), offsetY(y) - rise);
@@ -2718,7 +2726,7 @@ function run() {
 	}
 
     ctx.fillStyle = '#c7cdd8';
-    ctx.font = '15px Work Sans, Arial';
+    ctx.font = '15px Inter, Arial';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText(
@@ -2738,9 +2746,9 @@ function run() {
 	}
 	// ctx.textAlign = 'right';
 	// ctx.fillText(`[${me().weapon}]`, canvas.width-5, canvas.height - 15)
-	// // ctx.font = '35px Work Sans, Arial';
+	// // ctx.font = '35px Inter, Arial';
 	// // ctx.fillText(`${me().ammo} / ${Weapons[me().weapon].ammo}`, canvas.width - 50, canvas.height - 50);
-	// ctx.font = '20px Work Sans, Arial';
+	// ctx.font = '20px Inter, Arial';
 	// ctx.fillStyle = '#757575';
 	// ctx.globalAlpha = 0.6;
 	// ctx.fillRect(canvas.width / 2 - 200, canvas.height - 40, 400, 40);
@@ -2774,27 +2782,25 @@ function run() {
 	// ctx.fillRect(canvas.width / 2 - 150, canvas.height - 70, 300 * (me().currentShift / me().shiftLength), 30)
  //    ctx.strokeStyle = '#757575';
 	// ctx.fillStyle = 'black'
-	// ctx.font = '20px Work Sans, Arial';
+	// ctx.font = '20px Inter, Arial';
 	// ctx.fillText(`${Math.round((me().currentShift/me().shiftLength)*100)}%`, canvas.width / 2, canvas.height - 55)
 	// ctx.lineWidth = 3;
 	// ctx.strokeRect(canvas.width / 2  - 150, canvas.height - 70, 300, 30);
 	playerUI()
 
-	// storm round timer, top center
-	const rtW = 150;
-	const rtH = 46;
+	// round timer, top center: large, minimal, serious
 	const urgent = roundTime <= 10;
-	ctx.fillStyle = 'rgba(20, 22, 27, 0.85)';
-	fillRoundRect(canvas.width / 2 - rtW / 2, 12, rtW, rtH, 10);
+	const rSecs = Math.ceil(roundTime);
+	const tText = `${Math.floor(rSecs / 60)}:${String(rSecs % 60).padStart(2, '0')}`;
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
-	ctx.font = 'bold 10px Work Sans, Arial';
-	ctx.fillStyle = urgent ? '#ff8a80' : '#8b93a3';
-	ctx.fillText('STORM SHRINKING', canvas.width / 2, 12 + 12);
-	const rSecs = Math.ceil(roundTime);
-	ctx.font = 'bold 22px Work Sans, Arial';
-	ctx.fillStyle = urgent ? '#ff5252' : '#e8eaf0';
-	ctx.fillText(`${Math.floor(rSecs / 60)}:${String(rSecs % 60).padStart(2, '0')}`, canvas.width / 2, 12 + 31);
+	ctx.lineJoin = 'round';
+	ctx.font = '200 44px Inter, Arial';
+	ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+	ctx.lineWidth = 4;
+	ctx.strokeText(tText, canvas.width / 2, 42);
+	ctx.fillStyle = urgent ? '#ff5252' : '#ffffff';
+	ctx.fillText(tText, canvas.width / 2, 42);
 
 	// round winner banner
 	if (winnerTimer > 0) {
@@ -2802,16 +2808,16 @@ function run() {
 		const wScale = 1 + Math.max(0.4 - wIn * 2, 0);
 		ctx.globalAlpha = winnerTimer < 1 ? winnerTimer : 1;
 		ctx.lineJoin = 'round';
-		ctx.font = `bold ${Math.round(44 * wScale)}px Work Sans, Arial`;
+		ctx.font = `200 ${Math.round(44 * wScale)}px Inter, Arial`;
 		const wText = winnerName != null ? `${winnerName} WINS THE ROUND` : 'ROUND OVER';
 		ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
-		ctx.lineWidth = 8;
+		ctx.lineWidth = 5;
 		ctx.strokeText(wText, canvas.width / 2, canvas.height / 2 - 130);
 		ctx.fillStyle = '#ffcc00';
 		ctx.fillText(wText, canvas.width / 2, canvas.height / 2 - 130);
-		ctx.font = 'bold 20px Work Sans, Arial';
+		ctx.font = '300 20px Inter, Arial';
 		const wSub = winnerName != null ? `${winnerKills} kill${winnerKills === 1 ? '' : 's'}` : 'no kills this round';
-		ctx.lineWidth = 5;
+		ctx.lineWidth = 3;
 		ctx.strokeText(wSub, canvas.width / 2, canvas.height / 2 - 92);
 		ctx.fillStyle = '#e8eaf0';
 		ctx.fillText(wSub, canvas.width / 2, canvas.height / 2 - 92);
@@ -2828,7 +2834,7 @@ function run() {
 	const rowH = 30;
 	ctx.fillStyle = 'rgba(20, 22, 27, 0.85)';
 	fillRoundRect(lbX, lbY, lbW, 44 + playerNames.length * rowH + 6, 10);
-	ctx.font = 'bold 13px Work Sans, Arial';
+	ctx.font = '300 13px Inter, Arial';
 	ctx.textBaseline = 'middle';
 	ctx.textAlign = 'left';
 	ctx.fillStyle = '#8b93a3';
@@ -2845,7 +2851,7 @@ function run() {
 			ctx.fillStyle = 'rgba(79, 195, 247, 0.14)';
 			fillRoundRect(lbX + 6, lbRowY - rowH / 2 + 2, lbW - 12, rowH - 4, 6);
 		}
-		ctx.font = 'bold 15px Work Sans, Arial';
+		ctx.font = '300 15px Inter, Arial';
 		ctx.textAlign = 'left';
 		ctx.fillStyle = rankColors[number - 1] ?? '#8b93a3';
 		ctx.fillText(`${number}`, lbX + 14, lbRowY);
@@ -2862,13 +2868,13 @@ function run() {
 		number++;
 	}
 	if (hitDamageActivate) {
-        ctx.font = '35px Work Sans, Arial';
+        ctx.font = '35px Inter, Arial';
         ctx.fillStyle = '#e8eaf0';
 		const hWidth = ctx.measureText('Hit Damage: ').width + ctx.measureText(`${hitDamage}`).width;
 		const dWidth = ctx.measureText(`${hitDamage}`).width
 		const tWidth = ctx.measureText(`+`).width
         ctx.fillText('Hit Damage: ' + hitDamage, canvas.width / 2, 100);
-		ctx.font = '30px Work Sans, Arial';
+		ctx.font = '30px Inter, Arial';
 		let currentY = 100 + 35;
 		// hits = hits.sort((a, b) => a.t - b.t)
 		ctx.fillStyle = 'red'
@@ -2884,13 +2890,13 @@ function run() {
 		const tIn = 3 - kTimer;
 		const scale = 1 + Math.max(0.5 - tIn * 2.5, 0);
 		ctx.globalAlpha = kTimer <= 1 ? (kTimer/1): 1;
-		ctx.font = `bold ${Math.round(30 * scale)}px Work Sans, Arial`;
+		ctx.font = `200 ${Math.round(30 * scale)}px Inter, Arial`;
 		ctx.textAlign = 'center';
 		ctx.textBaseline = 'middle';
 		let adj = kAdj.charAt(0) + kAdj.slice(1).toLowerCase();
 		ctx.lineJoin = 'round';
 		ctx.strokeStyle = 'rgba(30, 33, 38, 0.9)';
-		ctx.lineWidth = 6;
+		ctx.lineWidth = 4;
 		ctx.strokeText(`${adj} ${kName}`, canvas.width / 2, canvas.height - 175);
 		ctx.fillStyle = '#ffcc00';
 		ctx.fillText(`${adj} ${kName}`, canvas.width / 2, canvas.height - 175)
@@ -2945,13 +2951,13 @@ function playerUI() {
 		ctx.fillStyle = hpFrac > 0.3 ? '#ef5350' : '#ff1744';
 		fillRoundRect(canvas.width / 2 - 175, canvas.height - 26, Math.max(350 * hpFrac, 14), 20, 8);
 	}
-	ctx.font = 'bold 11px Work Sans, Arial';
+	ctx.font = '300 11px Inter, Arial';
 	ctx.textBaseline = 'middle'
 	ctx.textAlign = 'left';
 	ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
 	ctx.fillText('ENERGY', canvas.width / 2 - 165, canvas.height - 50 + 10)
 	ctx.fillText('HEALTH', canvas.width / 2 - 165, canvas.height - 26 + 10)
-	ctx.font = 'bold 13px Work Sans, Arial';
+	ctx.font = '300 13px Inter, Arial';
 	ctx.textAlign = 'right';
 	ctx.fillText(`${Math.round(sprintFrac * 100)}%`, canvas.width / 2 + 165, canvas.height - 50 + 10)
 	ctx.fillText(`${Math.round(player.hp)}`, canvas.width / 2 + 165, canvas.height - 26 + 10)
@@ -2991,13 +2997,13 @@ function playerUI() {
 		// ctx.fillStyle = 'yellow'//Powers[powers[0]].color;
 		// ctx.fillRect(canvas.width/2 - 175 - 50, canvas.height - 50, 50, 50);
 		ctx.fillStyle = 'yellow';
-		ctx.font = '25px Work Sans';
+		ctx.font = '25px Inter';
 		ctx.fillText('UP', canvas.width / 2 - 175 - 50 + 50/2, canvas.height -50/2)
 	
 		let touchingBox = rectContainsPoint(canvas.width/ 2- 175 - 50 , canvas.height - 50, 50, 50, window.mx, window.my)
 		if (!touchingBox && !showPassives) {
 			ctx.fillStyle = 'black';
-			ctx.font = '20px Work Sans';
+			ctx.font = '20px Inter';
 			ctx.fillText('[1]', canvas.width /2 - 175 - 50 + 50/2, canvas.height - 50 - 20)
 		}
 		if (showPassives || touchingBox) {
@@ -3015,7 +3021,7 @@ function playerUI() {
 				let powerWidth = 75 //+ (string.length-1)*50;
 				width += powerWidth;
 			})
-			ctx.font = '20px Work Sans'
+			ctx.font = '20px Inter'
 			ctx.fillStyle = 'black'
 			// string.length -= 3;
 			ctx.globalAlpha = showPassives? 0.75: 0.5;
@@ -3026,7 +3032,7 @@ function playerUI() {
 			ctx.lineWidth = 3;
 			ctx.strokeRect(canvas.width /2 - 175 - 50/2 - width/2, canvas.height - 125, width, 75)
 			ctx.globalAlpha = 1;
-			ctx.font = '40px Work Sans';
+			ctx.font = '40px Inter';
 			let x = 0;
 			let y = 0;
 			passives.forEach((name) => {
@@ -3045,12 +3051,12 @@ function playerUI() {
 				ctx.fillStyle = 'black';
 				// ctx.fillRect(canvas.width / 2 - 175 - 50/2 - width/2 + x , canvas.height - 125 + 55, 75, 20);
 				// ctx.fillRect(canvas.width /2 - 175 - 50/2 - width/2 + x + 75/2 - 25/2, canvas.height - 125 + 55 - 75 - 5, 25, 25)
-				ctx.font = '40px Work Sans'
+				ctx.font = '40px Inter'
 				let hovering = false;
 				if (!touchingBox) {
 					if (rectContainsPoint(canvas.width / 2 - 175 - 50/2 - width/2 + x + 1, canvas.height - 125 + 1, pWidth - 2, 75 - 2, window.mx, window.my)) {
 						hovering = true;
-						ctx.font = '30px Work Sans';
+						ctx.font = '30px Inter';
 						const nw = ctx.measureText(name).width;
 						// ctx.fillStyle = Powers[name].color;
 						ctx.fillStyle = 'black'
@@ -3059,14 +3065,14 @@ function playerUI() {
 						ctx.globalAlpha = 1;
 						ctx.fillStyle = Powers[name].color
 						ctx.fillText(name, canvas.width / 2 - 175 - 50/2 - width/2 + x + pWidth/2, canvas.height-125-25/2-25-10)
-						ctx.font = '40px Work Sans';
+						ctx.font = '40px Inter';
 					}
 				}
 				// ctx.fillStyle = hovering ? Powers[name].color: 'white';
 				ctx.fillStyle = 'black'
-				ctx.font = '20px Work Sans';
+				ctx.font = '20px Inter';
 				ctx.fillText(`[${y}]`, canvas.width / 2 - 175 - 50/2 - width/2 + x + 75/2, canvas.height-125 - 25/2-5)
-				ctx.font = '40px Work Sans'
+				ctx.font = '40px Inter'
 				x += pWidth
 			})
 			// ctx.fillText('Choose Passive', canvas.width /2 - 175 - 50/2, canvas.height - 150)
@@ -3106,14 +3112,14 @@ function playerUI() {
 			ctx.lineWidth = 3;
 			ctx.strokeRect(canvas.width/ 2 - 175 - 50 - 175, canvas.height - 250, 400, 200);
 			ctx.fillStyle = Powers[powers[0]].color;
-			ctx.font = '25px Work Sans'
+			ctx.font = '25px Inter'
 			ctx.fillStyle = Powers[powers[0]].color;
 			ctx.fillText(powers[0], canvas.width / 2 - 175 - 50 + 50/2, canvas.height - 250 + 25)
 	
-			ctx.font = '20px Work Sans'
+			ctx.font = '20px Inter'
 			ctx.fillText(`[${Powers[powers[0]].type}]`, canvas.width/2 - 175 - 50 + 50/2, canvas.height - 75)
 			ctx.fillStyle = 'white';
-			ctx.font = '15px Work Sans';
+			ctx.font = '15px Inter';
 			wrapText(ctx, Powers[powers[0]].desc, canvas.width/2 - 175 - 50/2, canvas.height - 250 + 50 + 25/5, 375, 25);
 		}
 	}
@@ -3127,12 +3133,12 @@ function playerUI() {
 		ctx.strokeRect(canvas.width/2 + 175, canvas.height - 50, 50, 50);
 	} else if (me().activeUpgrade) {
 		ctx.fillStyle = 'yellow';
-		ctx.font = '25px Work Sans';
+		ctx.font = '25px Inter';
 		ctx.fillText('UP', canvas.width / 2 + 175 + 50/2, canvas.height -50/2)
 		let touchingBox = rectContainsPoint(canvas.width/ 2 + 175 , canvas.height - 50, 50, 50, window.mx, window.my);
 		if (!touchingBox && !showActives) {
 			ctx.fillStyle = 'black';
-			ctx.font = '20px Work Sans';
+			ctx.font = '20px Inter';
 			ctx.fillText('[2]', canvas.width /2 + 175 + 50/2, canvas.height - 50 - 20)
 		} 
 		if (touchingBox || showActives) {
@@ -3150,7 +3156,7 @@ function playerUI() {
 				let powerWidth = 75 //+ (string.length-1)*50;
 				width += powerWidth;
 			})
-			ctx.font = '20px Work Sans'
+			ctx.font = '20px Inter'
 			ctx.fillStyle = 'black'
 			// string.length -= 3;
 			ctx.globalAlpha = showActives? 0.75: 0.5;
@@ -3161,7 +3167,7 @@ function playerUI() {
 			ctx.lineWidth = 3;
 			ctx.strokeRect(canvas.width /2 + 175 + 50/2 - width/2, canvas.height - 125, width, 75)
 			ctx.globalAlpha = 1;
-			ctx.font = '40px Work Sans';
+			ctx.font = '40px Inter';
 			let x = 0;
 			let y = 0;
 			actives.forEach((name) => {
@@ -3181,14 +3187,14 @@ function playerUI() {
 				// ctx.fillRect(canvas.width /2 + 175 + 50/2 - width/2 + x + 75/2 - 25/2, canvas.height - 125 + 55 - 75 - 5, 25, 25)
 				// ctx.fillRect(canvas.width / 2 + 175 + 50/2 - width/2 + x , canvas.height - 125 + 55, 75, 20);
 				ctx.fillStyle = 'white';
-				ctx.font = '20px Work Sans';
+				ctx.font = '20px Inter';
 				// ctx.fillText(y, canvas.width / 2 + 175 + 50/2 - width/2 + x + 75/2, canvas.height-125+10 + 55)
-				ctx.font = '40px Work Sans'
+				ctx.font = '40px Inter'
 				let hovering = false;
 				if (!touchingBox) {
 					if (rectContainsPoint(canvas.width / 2 + 175 + 50/2 - width/2 + x + 1, canvas.height - 125 + 1, pWidth - 2, 75 - 2, window.mx, window.my)) {
 						hovering = true;
-						ctx.font = '30px Work Sans';
+						ctx.font = '30px Inter';
 						const nw = ctx.measureText(name).width;
 						// ctx.fillStyle = Powers[name].color;
 						ctx.fillStyle = 'black'
@@ -3197,19 +3203,19 @@ function playerUI() {
 						ctx.globalAlpha = 1;
 						ctx.fillStyle = Powers[name].color
 						ctx.fillText(name, canvas.width / 2 + 175 +  50/2 - width/2 + x + pWidth/2, canvas.height-125-25/2-25-10)
-						ctx.font = '40px Work Sans';
+						ctx.font = '40px Inter';
 					}
 				}
 				// ctx.fillStyle = hovering ? Powers[name].color: 'white';
 				ctx.fillStyle = 'black'
-				ctx.font = '20px Work Sans';
+				ctx.font = '20px Inter';
 				ctx.fillText(`[${y}]`, canvas.width / 2 + 175 + 50/2 - width/2 + x + 75/2, canvas.height-125 - 25/2 - 5)
-				ctx.font = '40px Work Sans'
+				ctx.font = '40px Inter'
 				x += pWidth
 				
 			})
 			// const actives = Object.keys(Powers).filter((k) => Powers[k].type == 'Active');
-			// ctx.font = '20px Work Sans'
+			// ctx.font = '20px Inter'
 			// ctx.fillStyle = 'black'
 			// let string = '- ';
 			// actives.forEach((name) => {
@@ -3221,7 +3227,7 @@ function playerUI() {
 			
 			// const actives = Object.keys(Powers).filter((k) => Powers[k].type == 'Active');
 			// const width = 75 * actives.length;
-			// ctx.font = '20px Work Sans'
+			// ctx.font = '20px Inter'
 			// ctx.fillStyle = 'black'
 			// // string.length -= 3;
 			// ctx.globalAlpha = 0.75;
@@ -3233,7 +3239,7 @@ function playerUI() {
 			// 	ctx.fillStyle = Powers[name].color;
 			// 	ctx.fillRect(canvas.width /2 + 175 + 50/2 - width/2 + x, canvas.height - 125, 75, 75);
 			// 	ctx.fillStyle = 'black';
-			// 	ctx.font = '40px Work Sans';
+			// 	ctx.font = '40px Inter';
 			// 	ctx.fillText(name[0], canvas.width / 2 + 175 + 50/2 - width/2 + x + 75/2, canvas.height - 125+75/2);
 			// 	x += 75
 			// })
@@ -3276,14 +3282,14 @@ function playerUI() {
 			ctx.lineWidth = 3;
 			ctx.strokeRect(canvas.width/ 2 +175 - 175, canvas.height - 250, 400, 200);
 			ctx.fillStyle = Powers[powers[1]].color;
-			ctx.font = '25px Work Sans'
+			ctx.font = '25px Inter'
 			ctx.fillStyle = Powers[powers[1]].color;
 			ctx.fillText(powers[1], canvas.width / 2 +175 + 50/2, canvas.height - 250 + 25)
 	
-			ctx.font = '20px Work Sans'
+			ctx.font = '20px Inter'
 			ctx.fillText(`[${Powers[powers[1]].type}]`, canvas.width/2 +175 + 50/2, canvas.height - 75)
 			ctx.fillStyle = 'white';
-			ctx.font = '15px Work Sans';
+			ctx.font = '15px Inter';
 			wrapText(ctx, Powers[powers[1]].desc, canvas.width/2 +175+50/2, canvas.height - 250 + 50 + 25/5, 375, 25);
 		}
 		// if (rectContainsPoint(canvas.width - 300 + 25/2 + 75 , canvas.height - 75+ 25/2, 50, 50, window.mx, window.my)) {
@@ -3291,12 +3297,12 @@ function playerUI() {
 		// 	ctx.fillRect(canvas.width - 450 + 25/2 + 75, canvas.height - 300 + 25/2, 350, 200);
 		// 	ctx.globalAlpha = 1;
 		// 	ctx.fillStyle = Powers[powers[1]].color;
-		// 	ctx.font = '25px Work Sans'
+		// 	ctx.font = '25px Inter'
 		// 	ctx.fillText(powers[1], canvas.width - 400 + 25/2 + 250/2 + 75, canvas.height - 300 + 25/2 + 25)
-		// 	ctx.font = '20px Work Sans'
+		// 	ctx.font = '20px Inter'
 		// 	ctx.fillText(`[${Powers[powers[1]].type}]`, canvas.width - 400 + 75 + 25/2 + 250/2, canvas.height - 200 + 25/2 + 100 - 20)
 		// 	ctx.fillStyle = 'white';
-		// 	ctx.font = '16px Work Sans';
+		// 	ctx.font = '16px Inter';
 		// 	wrapText(ctx, Powers[powers[1]].desc, canvas.width - 450 + 75 + 25/2 + 350/2, canvas.height - 300 + 25/2 + 50 + 25/4, 325, 25);
 		// }
 	}
@@ -3315,12 +3321,12 @@ function playerUI() {
 	// 		ctx.fillRect(canvas.width - 450 + 25/2 + 75, canvas.height - 300 + 25/2, 350, 200);
 	// 		ctx.globalAlpha = 1;
 	// 		ctx.fillStyle = Powers[powers[2]].color;
-	// 		ctx.font = '25px Work Sans'
+	// 		ctx.font = '25px Inter'
 	// 		ctx.fillText(powers[2], canvas.width - 400 + 25/2 + 250/2 + 75, canvas.height - 300 + 25/2 + 25)
-	// 		ctx.font = '20px Work Sans'
+	// 		ctx.font = '20px Inter'
 	// 		ctx.fillText(`[${Powers[powers[2]].type}]`, canvas.width - 400 + 75 + 25/2 + 250/2, canvas.height - 200 + 25/2 + 100 - 20)
 	// 		ctx.fillStyle = 'white';
-	// 		ctx.font = '16px Work Sans';
+	// 		ctx.font = '16px Inter';
 	// 		wrapText(ctx, Powers[powers[2]].desc, canvas.width - 450 + 75 + 25/2 + 350/2, canvas.height - 300 + 25/2 + 50 + 25/4, 325, 25);
 	// 	}
 	// }
@@ -3329,7 +3335,7 @@ function playerUI() {
 	ctx.fillStyle = 'black';
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
-	ctx.font = '40px Work Sans'
+	ctx.font = '40px Inter'
 
 	
 	if (powers[0] != undefined ) {
@@ -3394,7 +3400,7 @@ function playerUI() {
 	// const h = 25
 	// const rad = h / 2;
 	// ctx.shadowColor = 'transparent';
-	// ctx.font = `${20}px Work Sans`;
+	// ctx.font = `${20}px Inter`;
  //      ctx.textAlign = 'center';
  //      ctx.textBaseline = 'middle';
 	// ctx.fillRect(canvas.width - 210 - 100 / 2 - w / 2, canvas.height - 74 - h / 2, w, h);
@@ -3410,7 +3416,7 @@ function playerUI() {
 	return;
 
       // gun
-      ctx.font = `${30}px Work Sans`;
+      ctx.font = `${30}px Inter`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = 'white';

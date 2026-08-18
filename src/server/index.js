@@ -268,7 +268,7 @@ wss.on('connection', (socket, req) => {
 		                    clientId,
 		                    data.approxPing,
 		                    data.uid,
-							400,
+							450,
 							0.6,
 		                );
 						bId = `${createId()}b`;
@@ -282,7 +282,7 @@ wss.on('connection', (socket, req) => {
 		                    clientId,
 		                    data.approxPing,
 		                    data.uid - 1,
-							400,
+							450,
 							0.6,
 		                );
 						bId = `${createId()}b`;
@@ -296,7 +296,7 @@ wss.on('connection', (socket, req) => {
 		                    clientId,
 		                    data.approxPing,
 		                    data.uid + 1,
-							400,
+							450,
 							0.6,
 		                );
 						bId = `${createId()}b`;
@@ -310,7 +310,7 @@ wss.on('connection', (socket, req) => {
 		                    clientId,
 		                    data.approxPing,
 		                    data.uid - 2,
-							400,
+							450,
 							0.6,
 		                );
 						bId = `${createId()}b`;
@@ -324,7 +324,7 @@ wss.on('connection', (socket, req) => {
 		                    clientId,
 		                    data.approxPing,
 		                    data.uid + 2,
-							400,
+							450,
 							0.6,
 		                );
 					} else if (players[clientId].weapon === 'Pistol') {
@@ -337,7 +337,7 @@ wss.on('connection', (socket, req) => {
 		                    clientId,
 		                    data.approxPing,
 		                    data.uid,
-							375,
+							425,
 							0.9,
 		                );
 					} else if (players[clientId].weapon === 'Rifle') {
@@ -350,22 +350,22 @@ wss.on('connection', (socket, req) => {
 		                    clientId,
 		                    data.approxPing,
 		                    data.uid,
-							475,
+							540,
 							1.2,
 		                );
 					} else if (players[clientId].weapon === 'Burst') {
 						players[clientId].burstTally = (players[clientId].burstTally + 1) % 3;
 						let tally = players[clientId].burstTally;
-						let speed = 310;
+						let speed = 355;
 						let life = 1.2;
 						// 0 - 1 - 2
 						if (tally === 0) {
 							// same
 						} else if (tally === 1) {
-							speed = 350;
+							speed = 400;
 							life = 1.07
 						} else if (tally === 2) {
-							speed = 390;
+							speed = 445;
 							life = 0.96;
 						}
 						bullets[bId] = new Bullet(
@@ -390,7 +390,7 @@ wss.on('connection', (socket, req) => {
 							clientId,
 							data.approxPing,
 							data.uid,
-							375,
+							425,
 							0.6,
 						)
 					} else if (players[clientId].weapon === 'LMG') {
@@ -403,7 +403,7 @@ wss.on('connection', (socket, req) => {
 							clientId,
 							data.approxPing,
 							data.uid,
-							325,
+							370,
 							1.3,
 						)
 					}
