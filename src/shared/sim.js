@@ -154,9 +154,9 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
     _xv += (_input.right - _input.left) * dt * speed;
     _yv += (_input.down - _input.up) * dt * speed;
 	if (!player.skating || (player.skating && player.shiftTime <= 0.2)) {
-		// lighter damping = more glide/momentum; accel tuned in player.speed
-    	_xv *= 0.94;
-	    _yv *= 0.94
+		// very light damping: speed builds up and carries - momentum matters
+    	_xv *= 0.96;
+	    _yv *= 0.96
 	}
 	if (player.denying || player.denied) {
 		const speedLimit = 1;

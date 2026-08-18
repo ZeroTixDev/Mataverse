@@ -1560,11 +1560,10 @@ function update(dt) {
 			}
 	        send(pack);
 			me().lastShot = window.performance.now()
-			// muzzle flash + tiny recoil kick
+			// muzzle flash (no camera kick)
 			const muzzleX = me().isx + Math.cos(me().angle) * (me().r + 20);
 			const muzzleY = me().isy + Math.sin(me().angle) * (me().r + 20);
 			spawnParticles(muzzleX, muzzleY, '#ffb74d', 5, 320, 0.22, 3, me().angle, 0.6);
-			addShake(2.5, 0.08);
 			if (me().weapon === 'Burst') {
 				if (me().burstTally == undefined) {
 					me().burstTally = 0;
@@ -1931,7 +1930,7 @@ function update(dt) {
 		const bullet = bullets[bulletId];
 		if (bullet.trail == undefined) bullet.trail = [];
 		bullet.trail.push({ x: bullet.x, y: bullet.y });
-		if (bullet.trail.length > 4) bullet.trail.shift();
+		if (bullet.trail.length > 12) bullet.trail.shift();
 	}
 	// storm embers drifting inward from the danger zone
 	if (arena != null && camera.x != null && Math.random() < 0.5) {
@@ -2140,15 +2139,23 @@ function run() {
 		}
 		const bCos = Math.cos(bullet.angle);
 		const bSin = Math.sin(bullet.angle);
-		// short single-segment trail
+		// long tapered trail: segments fade and thin toward the tail
 		if (bullet.trail != undefined && bullet.trail.length > 1) {
-			const tp = bullet.trail[0];
-			ctx.globalAlpha = bAlpha * 0.16;
 			ctx.strokeStyle = bColor;
-			ctx.lineWidth = Math.max(bullet.r * 0.6, 1.5);
 			ctx.lineCap = 'round';
+			const tn = bullet.trail.length;
+			for (let i = 0; i < tn - 1; i++) {
+				const tf = (i + 1) / tn;
+				ctx.globalAlpha = bAlpha * tf * 0.22;
+				ctx.lineWidth = Math.max(bullet.r * (0.25 + 0.55 * tf), 1);
+				ctx.beginPath();
+				ctx.moveTo(offsetX(bullet.trail[i].x), offsetY(bullet.trail[i].y));
+				ctx.lineTo(offsetX(bullet.trail[i + 1].x), offsetY(bullet.trail[i + 1].y));
+				ctx.stroke();
+			}
+			ctx.globalAlpha = bAlpha * 0.25;
 			ctx.beginPath();
-			ctx.moveTo(offsetX(tp.x), offsetY(tp.y));
+			ctx.moveTo(offsetX(bullet.trail[tn - 1].x), offsetY(bullet.trail[tn - 1].y));
 			ctx.lineTo(x, y);
 			ctx.stroke();
 		}

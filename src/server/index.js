@@ -13,7 +13,7 @@ global.sendRate = 120;
 // global.gameSpeed = 0.5;
 let timer = 0;
 let globalTick = 0;
-const arena = { r: 2000, baseR: 2000, minR: 0 };
+const arena = { r: 2000, baseR: 2000, minR: 500 };
 // round/storm cycle: arena shrinks over ROUND_TIME, then winner + reset
 const ROUND_TIME = 180;
 let roundTimer = ROUND_TIME;
@@ -67,6 +67,33 @@ function regenerateObstacles() {
 			sy === 0 ? py : S - py - size,
 			size, size
 		));
+	}
+	// mid-field cover: one block per quadrant, close to the action,
+	// but the inner 500px around the center always stays clear
+	for (const [sx, sy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+		const size = snap50(randRange(100, 250));
+		let dx = snap50(randRange(400, 750));
+		let dy = snap50(randRange(400, 750));
+		while (dx * dx + dy * dy < 500 * 500) {
+			dx += 50;
+		}
+		obstacles.push(new Obstacle(
+			sx === 0 ? arena.baseR - dx - size : arena.baseR + dx,
+			sy === 0 ? arena.baseR - dy - size : arena.baseR + dy,
+			size, size
+		));
+	}
+	// two short mid walls just outside the clear zone
+	for (let i = 0; i < 2; i++) {
+		const len = snap50(randRange(250, 450));
+		const d = snap50(randRange(550, 800)) * (Math.random() < 0.5 ? -1 : 1);
+		const along = snap50(randRange(-400, 400));
+		const edge = arena.baseR + d - (d > 0 ? 0 : 50);
+		if (Math.random() < 0.5) {
+			obstacles.push(new Obstacle(snap50(arena.baseR - len / 2) + along, edge, len, 50));
+		} else {
+			obstacles.push(new Obstacle(edge, snap50(arena.baseR - len / 2) + along, 50, len));
+		}
 	}
 	// cardinal pillars
 	const northLen = snap50(randRange(350, 550));
@@ -540,9 +567,10 @@ function ServerTick() {
     const dt = (Date.now() - lastTime) / 1000;
     lastTime = Date.now();
 
-	// storm round: shrink arena over the round, crown a winner, reset
+	// storm round: shrink to minR, hold there for the final 30s, then crown + reset
 	roundTimer -= dt;
-	const roundProgress = 1 - Math.max(roundTimer, 0) / ROUND_TIME;
+	const shrinkTime = ROUND_TIME - 30;
+	const roundProgress = Math.min(1, Math.max(ROUND_TIME - roundTimer, 0) / shrinkTime);
 	arena.r = arena.baseR - (arena.baseR - arena.minR) * roundProgress;
 	if (roundTimer <= 0) {
 		let winner = null;
