@@ -29,15 +29,16 @@ const arraysEqual = (a1, a2) =>
 
 
 module.exports = class Player {
-    constructor(id, { r }, name, armor, weapon='Pistol') {
+    constructor(id, arena, name, armor, weapon='Pistol') {
         this.id = id;
 		this.baseR = 32;
         this.r = this.baseR//32//35//125; //35;
-        this._arena = { r };
+        this._arena = arena; // live reference: r shrinks during the storm round
 		const angle = Math.random() * 2 * Math.PI
 		const strength = Math.random() * this._arena.r
-		this.x = r + Math.cos(angle) * (strength - this.r);
-		this.y = r + Math.sin(angle) * (strength - this.r)
+		const cx = this._arena.baseR ?? this._arena.r;
+		this.x = cx + Math.cos(angle) * (strength - this.r);
+		this.y = cx + Math.sin(angle) * (strength - this.r)
         // this.x = this.r + Math.random() * (this._arena.w - this.r * 2);
         // this.y = this.r + Math.random() * (this._arena.h - this.r * 2);
         this.xv = 0;
@@ -45,7 +46,7 @@ module.exports = class Player {
 		this.weapon = weapon;
 		// burst only
 		this.burstTally = 2; // (because its module 3)
-        this.speed = 22//30//75; //55;
+        this.speed = 34//22//30//75; //55;
         this.input = { up: false, right: false, down: false, left: false, shift: false };
         this.changed = false;
 		this.totalDamage = 0;
@@ -396,8 +397,9 @@ module.exports = class Player {
     respawn() {
 		const angle = Math.random() * 2 * Math.PI
 		const strength = Math.random() * this._arena.r
-		this.x = this._arena.r + Math.cos(angle) * (strength - this.r);
-		this.y = this._arena.r + Math.sin(angle) * (strength - this.r)
+		const cx = this._arena.baseR ?? this._arena.r;
+		this.x = cx + Math.cos(angle) * (strength - this.r);
+		this.y = cx + Math.sin(angle) * (strength - this.r)
         // this.x = this.r + Math.random() * (this._arena.w - this.r * 2);
         // this.y = this.r + Math.random() * (this._arena.h - this.r * 2);
         this.health = 100;
@@ -759,7 +761,8 @@ module.exports = class Player {
 		//     outOfBounds = true;
 		// }
 		this.inStorm = false;
-		const outOfBounds = !circleCircleContains(this._arena.r, this._arena.r, this._arena.r, this.x, this.y, this.r);
+		const arenaC = this._arena.baseR ?? this._arena.r;
+		const outOfBounds = !circleCircleContains(arenaC, arenaC, this._arena.r, this.x, this.y, this.r);
 		if (outOfBounds) {
 			this.takeDamage(dt * 15, true)
 			this.inStorm = true;

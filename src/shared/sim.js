@@ -154,8 +154,9 @@ function simPlayer(player, inputPayload, delta, players, arena, obstacles=[]) {
     _xv += (_input.right - _input.left) * dt * speed;
     _yv += (_input.down - _input.up) * dt * speed;
 	if (!player.skating || (player.skating && player.shiftTime <= 0.2)) {
-    	_xv *= 0.94;	
-	    _yv *= 0.94
+		// stronger damping + higher accel = snappier, more responsive movement
+    	_xv *= 0.91;
+	    _yv *= 0.91
 	}
 	if (player.denying || player.denied) {
 		const speedLimit = 1;
