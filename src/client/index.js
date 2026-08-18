@@ -240,54 +240,62 @@ function drawOrb(x, y, r, color, strokeW) {
 // stylized weapon silhouettes, drawn in gun-local space:
 // (bx, by) is the top-left of the gun box, +y points along the aim direction,
 // so wide receiver parts sit near the player and barrels reach toward the muzzle
-function drawGunShape(weapon, bx, by, w, L, accent) {
-	const METAL = '#3d414a';
-	const DARK = '#22242a';
+function gunRects(weapon, bx, by, w, L) {
+	const METAL = '#4d5464';
+	const DARK = '#2e323c';
 	const cxm = bx + w / 2;
 	if (weapon === 'Pistol') {
 		// slide over a thin barrel
-		ctx.fillStyle = METAL;
-		ctx.fillRect(bx, by, w, L * 0.55);
-		ctx.fillStyle = DARK;
-		ctx.fillRect(cxm - w * 0.2, by + L * 0.5, w * 0.4, L * 0.5);
+		return [
+			{ x: bx, y: by, w: w, h: L * 0.55, c: METAL },
+			{ x: cxm - w * 0.2, y: by + L * 0.5, w: w * 0.4, h: L * 0.5, c: DARK },
+		];
 	} else if (weapon === 'Shotgun') {
 		// double barrel with a pump
-		ctx.fillStyle = METAL;
-		ctx.fillRect(bx, by, w, L * 0.24);
-		ctx.fillStyle = DARK;
-		ctx.fillRect(bx + w * 0.06, by + L * 0.2, w * 0.36, L * 0.8);
-		ctx.fillRect(bx + w * 0.58, by + L * 0.2, w * 0.36, L * 0.8);
-		ctx.fillStyle = METAL;
-		ctx.fillRect(bx - w * 0.12, by + L * 0.34, w * 1.24, L * 0.2);
+		return [
+			{ x: bx, y: by, w: w, h: L * 0.24, c: METAL },
+			{ x: bx + w * 0.06, y: by + L * 0.2, w: w * 0.36, h: L * 0.8, c: DARK },
+			{ x: bx + w * 0.58, y: by + L * 0.2, w: w * 0.36, h: L * 0.8, c: DARK },
+			{ x: bx - w * 0.12, y: by + L * 0.34, w: w * 1.24, h: L * 0.2, c: METAL },
+		];
 	} else if (weapon === 'Rifle') {
 		// receiver, side magazine, long barrel, muzzle brake
-		ctx.fillStyle = DARK;
-		ctx.fillRect(cxm - w * 0.15, by + L * 0.3, w * 0.3, L * 0.7);
-		ctx.fillStyle = METAL;
-		ctx.fillRect(bx, by, w, L * 0.38);
-		ctx.fillRect(bx - w * 0.28, by + L * 0.08, w * 0.34, L * 0.24);
-		ctx.fillStyle = DARK;
-		ctx.fillRect(cxm - w * 0.26, by + L * 0.9, w * 0.52, L * 0.1);
+		return [
+			{ x: cxm - w * 0.15, y: by + L * 0.3, w: w * 0.3, h: L * 0.7, c: DARK },
+			{ x: bx, y: by, w: w, h: L * 0.38, c: METAL },
+			{ x: bx - w * 0.28, y: by + L * 0.08, w: w * 0.34, h: L * 0.24, c: METAL },
+			{ x: cxm - w * 0.26, y: by + L * 0.9, w: w * 0.52, h: L * 0.1, c: DARK },
+		];
 	} else if (weapon === 'Burst') {
 		// vented three-port barrel shroud
-		ctx.fillStyle = METAL;
-		ctx.fillRect(bx, by, w, L * 0.5);
-		ctx.fillStyle = DARK;
-		ctx.fillRect(cxm - w * 0.28, by + L * 0.45, w * 0.56, L * 0.55);
-		ctx.fillStyle = METAL;
-		ctx.fillRect(cxm - w * 0.28, by + L * 0.58, w * 0.56, L * 0.06);
-		ctx.fillRect(cxm - w * 0.28, by + L * 0.72, w * 0.56, L * 0.06);
-		ctx.fillRect(cxm - w * 0.28, by + L * 0.86, w * 0.56, L * 0.06);
+		return [
+			{ x: bx, y: by, w: w, h: L * 0.5, c: METAL },
+			{ x: cxm - w * 0.28, y: by + L * 0.45, w: w * 0.56, h: L * 0.55, c: DARK },
+			{ x: cxm - w * 0.28, y: by + L * 0.58, w: w * 0.56, h: L * 0.06, c: METAL },
+			{ x: cxm - w * 0.28, y: by + L * 0.72, w: w * 0.56, h: L * 0.06, c: METAL },
+			{ x: cxm - w * 0.28, y: by + L * 0.86, w: w * 0.56, h: L * 0.06, c: METAL },
+		];
 	} else if (weapon === 'SMG') {
 		// boxy body, ejection port, stubby barrel
-		ctx.fillStyle = METAL;
-		ctx.fillRect(bx, by, w, L * 0.62);
-		ctx.fillStyle = DARK;
-		ctx.fillRect(bx + w * 0.1, by + L * 0.32, w * 0.8, L * 0.1);
-		ctx.fillRect(cxm - w * 0.13, by + L * 0.58, w * 0.26, L * 0.42);
-	} else {
-		ctx.fillStyle = METAL;
-		ctx.fillRect(bx, by, w, L);
+		return [
+			{ x: bx, y: by, w: w, h: L * 0.62, c: METAL },
+			{ x: bx + w * 0.1, y: by + L * 0.32, w: w * 0.8, h: L * 0.1, c: DARK },
+			{ x: cxm - w * 0.13, y: by + L * 0.58, w: w * 0.26, h: L * 0.42, c: DARK },
+		];
+	}
+	return [{ x: bx, y: by, w: w, h: L, c: METAL }];
+}
+
+function drawGunShape(weapon, bx, by, w, L, accent) {
+	const rects = gunRects(weapon, bx, by, w, L);
+	// bright rim pass behind the shapes so guns read on the dark floor
+	ctx.fillStyle = '#cfd6e4';
+	for (const r of rects) {
+		ctx.fillRect(r.x - 1.5, r.y - 1.5, r.w + 3, r.h + 3);
+	}
+	for (const r of rects) {
+		ctx.fillStyle = r.c;
+		ctx.fillRect(r.x, r.y, r.w, r.h);
 	}
 	// weapon-color identity stripe at the base
 	ctx.fillStyle = accent;
