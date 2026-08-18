@@ -42,6 +42,7 @@ let winnerTimer = 0;
 let winnerName = null;
 let winnerKills = 0;
 let winnerDmg = 0;
+let fireworkCooldown = 0;
 
 let showPassives = false;
 let showActives = false;
@@ -2002,6 +2003,19 @@ function update(dt) {
 		bullet.trail.push({ x: bullet.x, y: bullet.y });
 		if (bullet.trail.length > 20) bullet.trail.shift();
 	}
+	// victory fireworks: rainbow bursts around the view while the banner shows
+	if (winnerTimer > 0.5 && winnerName != null && camera.x != null) {
+		fireworkCooldown -= dt;
+		if (fireworkCooldown <= 0) {
+			fireworkCooldown = 0.28 + Math.random() * 0.25;
+			const fwX = camera.x + (Math.random() - 0.5) * canvas.width * 0.7;
+			const fwY = camera.y + (Math.random() - 0.5) * canvas.height * 0.7;
+			const fwHue = Math.floor(Math.random() * 360);
+			spawnParticles(fwX, fwY, `hsl(${fwHue}, 95%, 62%)`, 26, 300, 1.0, 3.5);
+			spawnParticles(fwX, fwY, `hsl(${(fwHue + 45) % 360}, 95%, 70%)`, 10, 160, 1.2, 2.5);
+			spawnRing(fwX, fwY, '255, 255, 255', 70);
+		}
+	}
 	// storm embers drifting inward from the danger zone
 	if (arena != null && camera.x != null && Math.random() < 0.5) {
 		const ex = camera.x + (Math.random() - 0.5) * canvas.width;
@@ -2162,12 +2176,45 @@ function run() {
 	for (const playerId of Object.keys(players)) {
 		const player = players[playerId];
 		if (player.powers.includes('Quantum Field')) {
-			if (!player._qf) continue;
-			ctx.fillStyle = '#ef9a9a'
-			ctx.globalAlpha = 0.5 //- ((player._qf.t/5)*0.4);
+			if (!player._qf || player._qf.r == undefined) continue;
+			// quantum dome: breathing gradient core, glowing rim, counter-rotating rings
+			const qfNow = window.performance.now();
+			const qfPulse = 1 + 0.02 * Math.sin(qfNow / 180);
+			const qx = offsetX(player._qf.x);
+			const qy = offsetY(player._qf.y);
+			const qr = player._qf.r * qfPulse;
+			const qGrad = ctx.createRadialGradient(qx, qy, qr * 0.15, qx, qy, qr);
+			qGrad.addColorStop(0, 'rgba(255, 120, 120, 0.03)');
+			qGrad.addColorStop(0.75, 'rgba(255, 90, 90, 0.10)');
+			qGrad.addColorStop(1, 'rgba(255, 66, 66, 0.30)');
+			ctx.fillStyle = qGrad;
 			ctx.beginPath();
-			ctx.arc(offsetX(player._qf.x), offsetY(player._qf.y), player._qf.r, 0, Math.PI * 2);
-			ctx.fill()
+			ctx.arc(qx, qy, qr, 0, Math.PI * 2);
+			ctx.fill();
+			// glowing rim
+			ctx.strokeStyle = 'rgba(255, 92, 92, 0.85)';
+			ctx.lineWidth = 3;
+			ctx.shadowColor = '#ff4242';
+			ctx.shadowBlur = 16;
+			ctx.stroke();
+			ctx.shadowBlur = 0;
+			// counter-rotating dashed rings
+			ctx.save();
+			ctx.translate(qx, qy);
+			ctx.strokeStyle = 'rgba(255, 150, 150, 0.5)';
+			ctx.lineWidth = 2;
+			ctx.rotate((qfNow / 2600) % (Math.PI * 2));
+			ctx.setLineDash([22, 30]);
+			ctx.beginPath();
+			ctx.arc(0, 0, qr * 0.86, 0, Math.PI * 2);
+			ctx.stroke();
+			ctx.rotate(-((qfNow / 1300) % (Math.PI * 2)));
+			ctx.setLineDash([10, 26]);
+			ctx.beginPath();
+			ctx.arc(0, 0, qr * 0.6, 0, Math.PI * 2);
+			ctx.stroke();
+			ctx.setLineDash([]);
+			ctx.restore();
 		}
 	}
 	ctx.globalAlpha = 1;
@@ -2232,6 +2279,20 @@ function run() {
 		}
 		const bCos = Math.cos(bullet.angle);
 		const bSin = Math.sin(bullet.angle);
+		// rounds swell while inside a quantum field
+		let qfBoost = false;
+		for (const qfPid of Object.keys(players)) {
+			const qf = players[qfPid]._qf;
+			if (qf != null && qf.r != undefined) {
+				const dqx = bullet.x - qf.x;
+				const dqy = bullet.y - qf.y;
+				if (dqx * dqx + dqy * dqy < qf.r * qf.r) {
+					qfBoost = true;
+					break;
+				}
+			}
+		}
+		const bSize = qfBoost ? 1.4 : 1;
 		// long tapered trail: segments fade and thin toward the tail
 		if (bullet.trail != undefined && bullet.trail.length > 1) {
 			ctx.strokeStyle = bColor;
@@ -2255,11 +2316,11 @@ function run() {
 		ctx.globalAlpha = bAlpha;
 		if (bShape === 'pellet') {
 			// round shot pellet
-			drawOrb(x, y, Math.max(bullet.r * 0.9, 2), bColor);
+			drawOrb(x, y, Math.max(bullet.r * 0.9 * bSize, 2), bColor);
 		} else {
-			const bLen = bullet.r * bLenMult;
+			const bLen = bullet.r * bLenMult * bSize;
 			ctx.strokeStyle = bColor;
-			ctx.lineWidth = Math.max(bullet.r * bWidthMult, 2);
+			ctx.lineWidth = Math.max(bullet.r * bWidthMult * bSize, 2);
 			ctx.lineCap = 'round';
 			ctx.beginPath();
 			ctx.moveTo(x - bCos * bLen / 2, y - bSin * bLen / 2);
@@ -2268,7 +2329,7 @@ function run() {
 			// bright flickering tip
 			ctx.fillStyle = `rgba(255, 255, 255, ${(0.75 + Math.random() * 0.25).toFixed(2)})`;
 			ctx.beginPath();
-			ctx.arc(x + bCos * bLen / 2, y + bSin * bLen / 2, Math.max(bullet.r * (0.45 + Math.random() * 0.2), 1.5), 0, Math.PI * 2);
+			ctx.arc(x + bCos * bLen / 2, y + bSin * bLen / 2, Math.max(bullet.r * bSize * (0.45 + Math.random() * 0.2), 1.5), 0, Math.PI * 2);
 			ctx.fill();
 			ctx.lineCap = 'butt';
 		}
@@ -2490,7 +2551,7 @@ function run() {
         ctx.globalAlpha = bodyAlpha;
 		ctx.fillStyle = bodyColor;
         ctx.beginPath();
-        ctx.arc(x, y, player.r * (player.hp / 200), 0, Math.PI * 2);
+        ctx.arc(x, y, player.r * (player.hp / 1000), 0, Math.PI * 2);
         ctx.fill();
 		// colored identity outline, thickened by armor
         ctx.strokeStyle = outlineColor;
@@ -2543,7 +2604,7 @@ function run() {
 			ctx.globalAlpha = 1;
 			ctx.fillStyle = '#0d0e12';
 			ctx.beginPath();
-        	ctx.arc(x, y, player.r * (player.hp / 200), 0, Math.PI * 2);
+        	ctx.arc(x, y, player.r * (player.hp / 1000), 0, Math.PI * 2);
 	        ctx.fill();
 			 ctx.strokeStyle = '#f0453a';
        	 	ctx.lineWidth = 2 + (player.armor / 100) * 13; // + armor
@@ -3010,7 +3071,7 @@ function run() {
         outerRadius
     );
     grd.addColorStop(0, 'rgba(255,0,0,0)');
-    grd.addColorStop(1, 'rgba(255,0,0,' + (0.38 - (me().hp / 200)*0.38) + ')');
+    grd.addColorStop(1, 'rgba(255,0,0,' + (0.38 - (me().hp / 1000)*0.38) + ')');
     ctx.fillStyle = grd;
     ctx.fill();
 
@@ -3155,25 +3216,25 @@ function run() {
 		}
 	}
 
-	// round winner banner
+	// round winner banner: roomier layout, celebratory
 	if (winnerTimer > 0) {
 		const wIn = 4 - winnerTimer;
 		const wScale = 1 + Math.max(0.4 - wIn * 2, 0);
 		ctx.globalAlpha = winnerTimer < 1 ? winnerTimer : 1;
 		ctx.lineJoin = 'round';
-		ctx.font = `700 ${Math.round(44 * wScale)}px Inter, Arial`;
+		ctx.font = `700 ${Math.round(42 * wScale)}px Inter, Arial`;
 		const wText = winnerName != null ? `${winnerName} IS THE LAST ONE STANDING` : 'NO SURVIVORS';
 		ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
 		ctx.lineWidth = 5;
-		ctx.strokeText(wText, canvas.width / 2, canvas.height / 2 - 130);
+		ctx.strokeText(wText, canvas.width / 2, canvas.height / 2 - 170);
 		ctx.fillStyle = '#ffcc00';
-		ctx.fillText(wText, canvas.width / 2, canvas.height / 2 - 130);
-		ctx.font = '600 18px Inter, Arial';
-		const wSub = winnerName != null ? `${winnerKills} kill${winnerKills === 1 ? '' : 's'} · ${winnerDmg} damage` : 'no kills this round';
+		ctx.fillText(wText, canvas.width / 2, canvas.height / 2 - 170);
+		ctx.font = '600 19px Inter, Arial';
+		const wSub = winnerName != null ? `${winnerKills} kill${winnerKills === 1 ? '' : 's'}   ·   ${winnerDmg} damage` : 'no kills this round';
 		ctx.lineWidth = 3;
-		ctx.strokeText(wSub, canvas.width / 2, canvas.height / 2 - 92);
+		ctx.strokeText(wSub, canvas.width / 2, canvas.height / 2 - 112);
 		ctx.fillStyle = '#e8eaf0';
-		ctx.fillText(wSub, canvas.width / 2, canvas.height / 2 - 92);
+		ctx.fillText(wSub, canvas.width / 2, canvas.height / 2 - 112);
 		ctx.globalAlpha = 1;
 	}
 
@@ -3300,7 +3361,7 @@ function playerUI() {
 	const barX = canvas.width / 2 - 175;
 	const barW = 350;
 	// health is the hero bar: thick, gradient, number inside
-	const hpFrac = Math.max(Math.min(player.hp / 200, 1), 0);
+	const hpFrac = Math.max(Math.min(player.hp / 1000, 1), 0);
 	ctx.fillStyle = '#171a20';
 	fillRoundRect(barX, canvas.height - 52, barW, 22, 6);
 	if (hpFrac > 0.01) {
