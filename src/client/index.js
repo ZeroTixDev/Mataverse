@@ -689,9 +689,7 @@ async function handleMessage(event, lag = true) {
 	if (data.gotHit != undefined) {
 		gotHitTimer = 0;
 		gotHitStorm = false;
-		if (data.storm) {
-			addShake(3, 0.1);
-		} else {
+		if (!data.storm) {
 			addShake(9, 0.25);
 			if (players[selfId]) {
 				spawnParticles(me().x, me().y, '#ef5350', 12, 260, 0.5, 4);
@@ -1862,15 +1860,6 @@ function run() {
 	ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2);
 	ctx.clip();
 	drawTiles('#4a5160');
-	// area title written on the floor, Evades X style
-	ctx.textAlign = 'center';
-	ctx.textBaseline = 'middle';
-	ctx.font = '700 150px Inter, Arial';
-	ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-	ctx.fillText('STORM ARENA', a.x, a.y - 230);
-	ctx.font = '600 32px Inter, Arial';
-	ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
-	ctx.fillText('MOST KILLS WHEN THE STORM CLOSES WINS', a.x, a.y - 115);
 	ctx.restore();
 
 	 // ability effects and stuff
@@ -1879,6 +1868,11 @@ function run() {
 	
 	
 	if (obstacles != undefined) {
+		// obstacles are only visible inside the safe zone; the storm swallows them
+		ctx.save();
+		ctx.beginPath();
+		ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2);
+		ctx.clip();
 		for (const { x, y, w, h } of obstacles) {
 			const pos = offset(x, y);
 			ctx.fillStyle = '#434a56';
@@ -1887,6 +1881,7 @@ function run() {
 			ctx.strokeStyle = '#2f343d';
 			ctx.strokeRect(pos.x + 1.5, pos.y + 1.5, w - 3, h - 3);
 		}
+		ctx.restore();
 	}
 	for (const playerId of Object.keys(players)) {
 		const player = players[playerId];
@@ -2118,7 +2113,7 @@ function run() {
 		}
 		// crown above the current leader
 		if (topPlayers()[0].id == playerId && Object.keys(players).length > 1) {
-			const crownY = y - player.r - 42;
+			const crownY = y - player.r - 20;
 			ctx.lineJoin = 'round';
 			ctx.beginPath();
 			ctx.moveTo(x - 15, crownY + 8);
@@ -2244,7 +2239,7 @@ function run() {
 					ctx.strokeStyle = Powers['Bended Barrel'].color;
 					let c = ctx.fillStyle;
 					ctx.fillStyle = Powers['Bended Barrel'].color;
-					ctx.fillRect(x - width/2 - 5, y - player.r - 16 - 10, width + 10, 20);
+					ctx.fillRect(x - width/2 - 5, y + player.r + 18 - 10, width + 10, 20);
 					ctx.fillStyle = c;
 					ctx.lineWidth = 4;
 					const meX = offsetX(me().isx);
@@ -2257,14 +2252,13 @@ function run() {
 					// ctx.stroke()
 				}
 			}
-			// Evades-style name: white with dark outline
-			ctx.font = '600 16px Inter, Arial';
-			ctx.lineJoin = 'round';
-			ctx.strokeStyle = 'rgba(30, 33, 38, 0.85)';
-			ctx.lineWidth = 3;
-			ctx.strokeText(player.name, x, y - player.r - 16);
+			// clean name below the player: soft shadow instead of a hard outline
+			ctx.font = '600 15px Inter, Arial';
+			ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+			ctx.shadowBlur = 5;
 			ctx.fillStyle = 'white';
-			ctx.fillText(player.name, x, y - player.r - 16);
+			ctx.fillText(player.name, x, y + player.r + 18);
+			ctx.shadowBlur = 0;
 		}
 	
         ctx.fillStyle = 'white';
@@ -2939,40 +2933,45 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
 function playerUI() {
 	// return;
 	const player = me();
-	// bottom HUD panel, Evades X style rounded bars
-	ctx.fillStyle = 'rgba(24, 26, 31, 0.8)';
-	fillRoundRect(canvas.width / 2 - 225, canvas.height - 58, 450, 58, 10);
+	// bottom HUD panel: near-opaque, high-contrast tracks and brighter fills
+	ctx.fillStyle = 'rgba(13, 15, 19, 0.92)';
+	fillRoundRect(canvas.width / 2 - 230, canvas.height - 64, 460, 64, 12);
 
-	// sprint (energy) bar
-	let sprintColor = '#4fc3f7';
+	const barX = canvas.width / 2 - 175;
+	const barW = 350;
+	// energy bar
+	let sprintColor = '#3bc9ff';
 	if (me().denied || me().denying) {
 		sprintColor = '#ff7700';
 	}
-	ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-	fillRoundRect(canvas.width / 2 - 175, canvas.height - 50, 350, 20, 8);
 	const sprintFrac = Math.max(Math.min(player.cshift / player.shiftLength, 1), 0);
+	ctx.fillStyle = '#2a2e36';
+	fillRoundRect(barX, canvas.height - 56, barW, 22, 11);
 	if (sprintFrac > 0.01) {
 		ctx.fillStyle = sprintColor;
-		fillRoundRect(canvas.width / 2 - 175, canvas.height - 50, Math.max(350 * sprintFrac, 14), 20, 8);
+		fillRoundRect(barX, canvas.height - 56, Math.max(barW * sprintFrac, 18), 22, 11);
 	}
 	// health bar
-	ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-	fillRoundRect(canvas.width / 2 - 175, canvas.height - 26, 350, 20, 8);
 	const hpFrac = Math.max(Math.min(player.hp / 100, 1), 0);
+	ctx.fillStyle = '#2a2e36';
+	fillRoundRect(barX, canvas.height - 30, barW, 22, 11);
 	if (hpFrac > 0.01) {
-		ctx.fillStyle = hpFrac > 0.3 ? '#ef5350' : '#ff1744';
-		fillRoundRect(canvas.width / 2 - 175, canvas.height - 26, Math.max(350 * hpFrac, 14), 20, 8);
+		ctx.fillStyle = hpFrac > 0.3 ? '#ff5964' : '#ff1744';
+		fillRoundRect(barX, canvas.height - 30, Math.max(barW * hpFrac, 18), 22, 11);
 	}
-	ctx.font = '600 10px Inter, Arial';
-	ctx.textBaseline = 'middle'
+	ctx.textBaseline = 'middle';
+	ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+	ctx.shadowBlur = 4;
+	ctx.font = '700 11px Inter, Arial';
 	ctx.textAlign = 'left';
-	ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-	ctx.fillText('ENERGY', canvas.width / 2 - 165, canvas.height - 50 + 10)
-	ctx.fillText('HEALTH', canvas.width / 2 - 165, canvas.height - 26 + 10)
-	ctx.font = '600 13px Inter, Arial';
+	ctx.fillStyle = '#ffffff';
+	ctx.fillText('ENERGY', barX + 12, canvas.height - 56 + 11);
+	ctx.fillText('HEALTH', barX + 12, canvas.height - 30 + 11);
+	ctx.font = '700 13px Inter, Arial';
 	ctx.textAlign = 'right';
-	ctx.fillText(`${Math.round(sprintFrac * 100)}%`, canvas.width / 2 + 165, canvas.height - 50 + 10)
-	ctx.fillText(`${Math.round(player.hp)}`, canvas.width / 2 + 165, canvas.height - 26 + 10)
+	ctx.fillText(`${Math.round(sprintFrac * 100)}%`, barX + barW - 12, canvas.height - 56 + 11);
+	ctx.fillText(`${Math.round(player.hp)}`, barX + barW - 12, canvas.height - 30 + 11);
+	ctx.shadowBlur = 0;
 	ctx.textAlign = 'left';
 	// ctx.globalAlpha = 0.75
 	// ctx.fillStyle = 'black';
