@@ -44,7 +44,6 @@ const Powers = {
 	'Bullet Boomerang': {
 		color: '#1fff5a',
 		type: 'Active',
-		exp: true,
 		desc: 'Upon activation, your bullets will reverse their velocity and go in the opposite direction with 1.5x damage boost. The lifespan of the bullets are extended. [0.5s]',
 	},
 	'War Tank': {

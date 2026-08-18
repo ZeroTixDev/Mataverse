@@ -42,6 +42,7 @@ let winnerTimer = 0;
 let winnerName = null;
 let winnerKills = 0;
 let winnerDmg = 0;
+let fireworkCooldown = 0;
 
 let showPassives = false;
 let showActives = false;
@@ -2002,6 +2003,19 @@ function update(dt) {
 		bullet.trail.push({ x: bullet.x, y: bullet.y });
 		if (bullet.trail.length > 20) bullet.trail.shift();
 	}
+	// victory fireworks: rainbow bursts around the view while the banner shows
+	if (winnerTimer > 0.5 && winnerName != null && camera.x != null) {
+		fireworkCooldown -= dt;
+		if (fireworkCooldown <= 0) {
+			fireworkCooldown = 0.28 + Math.random() * 0.25;
+			const fwX = camera.x + (Math.random() - 0.5) * canvas.width * 0.7;
+			const fwY = camera.y + (Math.random() - 0.5) * canvas.height * 0.7;
+			const fwHue = Math.floor(Math.random() * 360);
+			spawnParticles(fwX, fwY, `hsl(${fwHue}, 95%, 62%)`, 26, 300, 1.0, 3.5);
+			spawnParticles(fwX, fwY, `hsl(${(fwHue + 45) % 360}, 95%, 70%)`, 10, 160, 1.2, 2.5);
+			spawnRing(fwX, fwY, '255, 255, 255', 70);
+		}
+	}
 	// storm embers drifting inward from the danger zone
 	if (arena != null && camera.x != null && Math.random() < 0.5) {
 		const ex = camera.x + (Math.random() - 0.5) * canvas.width;
@@ -3155,25 +3169,25 @@ function run() {
 		}
 	}
 
-	// round winner banner
+	// round winner banner: roomier layout, celebratory
 	if (winnerTimer > 0) {
 		const wIn = 4 - winnerTimer;
 		const wScale = 1 + Math.max(0.4 - wIn * 2, 0);
 		ctx.globalAlpha = winnerTimer < 1 ? winnerTimer : 1;
 		ctx.lineJoin = 'round';
-		ctx.font = `700 ${Math.round(44 * wScale)}px Inter, Arial`;
+		ctx.font = `700 ${Math.round(42 * wScale)}px Inter, Arial`;
 		const wText = winnerName != null ? `${winnerName} IS THE LAST ONE STANDING` : 'NO SURVIVORS';
 		ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
 		ctx.lineWidth = 5;
-		ctx.strokeText(wText, canvas.width / 2, canvas.height / 2 - 130);
+		ctx.strokeText(wText, canvas.width / 2, canvas.height / 2 - 170);
 		ctx.fillStyle = '#ffcc00';
-		ctx.fillText(wText, canvas.width / 2, canvas.height / 2 - 130);
-		ctx.font = '600 18px Inter, Arial';
-		const wSub = winnerName != null ? `${winnerKills} kill${winnerKills === 1 ? '' : 's'} · ${winnerDmg} damage` : 'no kills this round';
+		ctx.fillText(wText, canvas.width / 2, canvas.height / 2 - 170);
+		ctx.font = '600 19px Inter, Arial';
+		const wSub = winnerName != null ? `${winnerKills} kill${winnerKills === 1 ? '' : 's'}   ·   ${winnerDmg} damage` : 'no kills this round';
 		ctx.lineWidth = 3;
-		ctx.strokeText(wSub, canvas.width / 2, canvas.height / 2 - 92);
+		ctx.strokeText(wSub, canvas.width / 2, canvas.height / 2 - 112);
 		ctx.fillStyle = '#e8eaf0';
-		ctx.fillText(wSub, canvas.width / 2, canvas.height / 2 - 92);
+		ctx.fillText(wSub, canvas.width / 2, canvas.height / 2 - 112);
 		ctx.globalAlpha = 1;
 	}
 
