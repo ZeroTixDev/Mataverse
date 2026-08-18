@@ -1560,11 +1560,10 @@ function update(dt) {
 			}
 	        send(pack);
 			me().lastShot = window.performance.now()
-			// muzzle flash + tiny recoil kick
+			// muzzle flash (no camera kick)
 			const muzzleX = me().isx + Math.cos(me().angle) * (me().r + 20);
 			const muzzleY = me().isy + Math.sin(me().angle) * (me().r + 20);
 			spawnParticles(muzzleX, muzzleY, '#ffb74d', 5, 320, 0.22, 3, me().angle, 0.6);
-			addShake(2.5, 0.08);
 			if (me().weapon === 'Burst') {
 				if (me().burstTally == undefined) {
 					me().burstTally = 0;
