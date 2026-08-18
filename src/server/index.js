@@ -34,22 +34,51 @@ let perfAmount = 0;
 // ];
 // const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":300,"y":300,"width":200,"height":200,"type":"obstacle"},{"x":1100,"y":300,"width":200,"height":200,"type":"obstacle"},{"x":700,"y":700,"width":200,"height":200,"type":"obstacle"},{"x":300,"y":1100,"width":200,"height":200,"type":"obstacle"},{"x":1100,"y":1100,"width":200,"height":200,"type":"obstacle"},{"x":700,"y":500,"width":50,"height":200,"type":"obstacle"},{"x":850,"y":900,"width":50,"height":200,"type":"obstacle"}],"blocks":[],"arena":{"width":1600,"height":1600}}')
 
-// 4000x4000 arena: open center for late game, inner ring with diagonal gaps,
-// corner blocks, cardinal pillars - all edges land on the 50px grid
-const obstacles = [
-	new Obstacle(1400, 1100, 1200, 50),
-	new Obstacle(1400, 2850, 1200, 50),
-	new Obstacle(1100, 1400, 50, 1200),
-	new Obstacle(2850, 1400, 50, 1200),
-	new Obstacle(650, 650, 300, 300),
-	new Obstacle(3050, 650, 300, 300),
-	new Obstacle(650, 3050, 300, 300),
-	new Obstacle(3050, 3050, 300, 300),
-	new Obstacle(1950, 400, 100, 450),
-	new Obstacle(1950, 3150, 100, 450),
-	new Obstacle(400, 1950, 450, 100),
-	new Obstacle(3150, 1950, 450, 100),
-];
+// 4000x4000 arena, regenerated with variation each round: ring walls, corner
+// blocks, and cardinal pillars. Everything snaps to the 50px grid and stays
+// well away from the center so the endgame circle is always clear.
+const obstacles = [];
+let roundHue = Math.floor(Math.random() * 360);
+
+function snap50(v) {
+	return Math.round(v / 50) * 50;
+}
+function randRange(a, b) {
+	return a + Math.random() * (b - a);
+}
+function regenerateObstacles() {
+	obstacles.length = 0;
+	const S = arena.baseR * 2;
+	// inner ring walls (offset along their axis, never near the center)
+	const wallLen = snap50(randRange(900, 1400));
+	const wallDist = snap50(randRange(1000, 1250));
+	const wallJitter = () => snap50(randRange(-200, 200));
+	obstacles.push(new Obstacle(snap50(arena.baseR - wallLen / 2) + wallJitter(), wallDist, wallLen, 50));
+	obstacles.push(new Obstacle(snap50(arena.baseR - wallLen / 2) + wallJitter(), S - wallDist - 50, wallLen, 50));
+	obstacles.push(new Obstacle(wallDist, snap50(arena.baseR - wallLen / 2) + wallJitter(), 50, wallLen));
+	obstacles.push(new Obstacle(S - wallDist - 50, snap50(arena.baseR - wallLen / 2) + wallJitter(), 50, wallLen));
+	// corner blocks
+	for (const [sx, sy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+		const size = snap50(randRange(250, 400));
+		const px = snap50(randRange(600, 850));
+		const py = snap50(randRange(600, 850));
+		obstacles.push(new Obstacle(
+			sx === 0 ? px : S - px - size,
+			sy === 0 ? py : S - py - size,
+			size, size
+		));
+	}
+	// cardinal pillars
+	const northLen = snap50(randRange(350, 550));
+	const southLen = snap50(randRange(350, 550));
+	const westLen = snap50(randRange(350, 550));
+	const eastLen = snap50(randRange(350, 550));
+	obstacles.push(new Obstacle(arena.baseR - 50, snap50(randRange(350, 500)), 100, northLen));
+	obstacles.push(new Obstacle(arena.baseR - 50, S - snap50(randRange(350, 500)) - southLen, 100, southLen));
+	obstacles.push(new Obstacle(snap50(randRange(350, 500)), arena.baseR - 50, westLen, 100));
+	obstacles.push(new Obstacle(S - snap50(randRange(350, 500)) - eastLen, arena.baseR - 50, eastLen, 100));
+}
+regenerateObstacles();
 // const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":600,"y":1200,"width":200,"height":200,"type":"obstacle"},{"x":0,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":600,"y":0,"width":200,"height":200,"type":"obstacle"},{"x":1200,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":650,"y":650,"width":100,"height":100,"type":"obstacle"}],"blocks":[],"arena":{"width":1400,"height":1400}}')
 
 // let obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":1150,"y":750,"width":100,"height":100,"type":"obstacle"},{"x":1050,"y":850,"width":100,"height":100,"type":"obstacle"},{"x":400,"y":550,"width":50,"height":100,"type":"obstacle"},{"x":200,"y":920,"width":200,"height":30,"type":"obstacle"},{"x":730,"y":320,"width":250,"height":30,"type":"obstacle"},{"x":900,"y":250,"width":150,"height":70,"type":"obstacle"},{"x":720,"y":1230,"width":50,"height":50,"type":"obstacle"}],"blocks":[],"arena":{"width":1600,"height":1600}}')
@@ -540,6 +569,13 @@ function ServerTick() {
 		}
 		roundTimer = ROUND_TIME;
 		arena.r = arena.baseR;
+		// fresh look every round: new tint and a reshuffled (grid-aligned) layout
+		roundHue = Math.floor(Math.random() * 360);
+		regenerateObstacles();
+		for (const id of Object.keys(clients)) {
+			if (clients[id].menu) continue;
+			send(id, { obstacles: packObstacles() });
+		}
 	}
 
     timer += dt;
@@ -929,7 +965,7 @@ function ServerTick() {
         delete bullets[id];
     }
     // if (changePack.length > 0) {
-		const round = { t: Math.round(Math.max(roundTimer, 0) * 10) / 10, r: Math.round(arena.r) };
+		const round = { t: Math.round(Math.max(roundTimer, 0) * 10) / 10, r: Math.round(arena.r), hue: roundHue };
         for (const clientId of Object.keys(clients)) {
             send(clientId, { changePack,  bulletPack, round });
         }
