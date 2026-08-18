@@ -9,7 +9,7 @@ body {
     transition: background 0.2s linear;
     font-size: 16px;
     font-family: 'Inter', Arial, sans-serif;
-    font-weight: 300;
+    font-weight: 400;
     color: #e8eaf0;
 }
 
@@ -31,8 +31,8 @@ canvas {
 
 .title {
     font-size: 3.5rem;
-    font-weight: 200;
-    letter-spacing: 0.4rem;
+    font-weight: 700;
+    letter-spacing: 0.15rem;
     color: #ffffff;
     position: absolute;
     top: 0;
@@ -55,9 +55,10 @@ canvas {
 
 .m-title {
     font-size: 0.85rem;
+    font-weight: 600;
     letter-spacing: 0.25rem;
     text-transform: uppercase;
-    color: #8b93a3;
+    color: #9aa2b1;
     margin-top: 14px;
 }
 
@@ -94,7 +95,7 @@ canvas {
     height: auto;
     padding: 10px 16px;
     font-size: 0.95rem;
-    font-weight: 400;
+    font-weight: 600;
     letter-spacing: 0.02rem;
     opacity: 0.55;
     cursor: default;
@@ -111,7 +112,7 @@ canvas {
     width: 150px;
     height: 70px;
     color: #ffffff;
-    font-weight: 200;
+    font-weight: 600;
     transition: width 0.25s ease, transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -163,7 +164,7 @@ canvas {
     background: #4fc3f7;
     color: #0d1117;
     font-family: inherit;
-    font-weight: 500;
+    font-weight: 700;
     font-size: 1rem;
     letter-spacing: 0.1rem;
     cursor: pointer;
