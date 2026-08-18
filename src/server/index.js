@@ -13,7 +13,7 @@ global.sendRate = 120;
 // global.gameSpeed = 0.5;
 let timer = 0;
 let globalTick = 0;
-const arena = { r: 1000, baseR: 1000, minR: 380 };
+const arena = { r: 1000, baseR: 1000, minR: 0 };
 // round/storm cycle: arena shrinks over ROUND_TIME, then winner + reset
 const ROUND_TIME = 60;
 let roundTimer = ROUND_TIME;
