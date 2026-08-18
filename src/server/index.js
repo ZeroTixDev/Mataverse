@@ -35,20 +35,20 @@ let perfAmount = 0;
 // const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":300,"y":300,"width":200,"height":200,"type":"obstacle"},{"x":1100,"y":300,"width":200,"height":200,"type":"obstacle"},{"x":700,"y":700,"width":200,"height":200,"type":"obstacle"},{"x":300,"y":1100,"width":200,"height":200,"type":"obstacle"},{"x":1100,"y":1100,"width":200,"height":200,"type":"obstacle"},{"x":700,"y":500,"width":50,"height":200,"type":"obstacle"},{"x":850,"y":900,"width":50,"height":200,"type":"obstacle"}],"blocks":[],"arena":{"width":1600,"height":1600}}')
 
 // 4000x4000 arena: open center for late game, inner ring with diagonal gaps,
-// corner blocks, cardinal pillars
+// corner blocks, cardinal pillars - all edges land on the 50px grid
 const obstacles = [
-	new Obstacle(1400, 1100, 1200, 30),
-	new Obstacle(1400, 2840, 1200, 30),
-	new Obstacle(1100, 1400, 30, 1200),
-	new Obstacle(2840, 1400, 30, 1200),
-	new Obstacle(660, 660, 280, 280),
-	new Obstacle(3060, 660, 280, 280),
-	new Obstacle(660, 3060, 280, 280),
-	new Obstacle(3060, 3060, 280, 280),
-	new Obstacle(1970, 400, 30, 440),
-	new Obstacle(1970, 3160, 30, 440),
-	new Obstacle(400, 1970, 440, 30),
-	new Obstacle(3160, 1970, 440, 30),
+	new Obstacle(1400, 1100, 1200, 50),
+	new Obstacle(1400, 2850, 1200, 50),
+	new Obstacle(1100, 1400, 50, 1200),
+	new Obstacle(2850, 1400, 50, 1200),
+	new Obstacle(650, 650, 300, 300),
+	new Obstacle(3050, 650, 300, 300),
+	new Obstacle(650, 3050, 300, 300),
+	new Obstacle(3050, 3050, 300, 300),
+	new Obstacle(1950, 400, 100, 450),
+	new Obstacle(1950, 3150, 100, 450),
+	new Obstacle(400, 1950, 450, 100),
+	new Obstacle(3150, 1950, 450, 100),
 ];
 // const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":600,"y":1200,"width":200,"height":200,"type":"obstacle"},{"x":0,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":600,"y":0,"width":200,"height":200,"type":"obstacle"},{"x":1200,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":650,"y":650,"width":100,"height":100,"type":"obstacle"}],"blocks":[],"arena":{"width":1400,"height":1400}}')
 
