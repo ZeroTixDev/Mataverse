@@ -3263,15 +3263,15 @@ function run() {
 		const wText = winnerName != null ? `${winnerName} IS THE LAST ONE STANDING` : 'NO SURVIVORS';
 		ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
 		ctx.lineWidth = 5;
-		ctx.strokeText(wText, canvas.width / 2, canvas.height / 2 - 170);
+		ctx.strokeText(wText, canvas.width / 2, canvas.height / 2 - 230);
 		ctx.fillStyle = '#ffcc00';
-		ctx.fillText(wText, canvas.width / 2, canvas.height / 2 - 170);
+		ctx.fillText(wText, canvas.width / 2, canvas.height / 2 - 230);
 		ctx.font = '600 19px Inter, Arial';
 		const wSub = winnerName != null ? `${winnerKills} kill${winnerKills === 1 ? '' : 's'}   ·   ${winnerDmg} damage` : 'no kills this round';
 		ctx.lineWidth = 3;
-		ctx.strokeText(wSub, canvas.width / 2, canvas.height / 2 - 112);
+		ctx.strokeText(wSub, canvas.width / 2, canvas.height / 2 - 180);
 		ctx.fillStyle = '#e8eaf0';
-		ctx.fillText(wSub, canvas.width / 2, canvas.height / 2 - 112);
+		ctx.fillText(wSub, canvas.width / 2, canvas.height / 2 - 180);
 		ctx.globalAlpha = 1;
 	}
 
