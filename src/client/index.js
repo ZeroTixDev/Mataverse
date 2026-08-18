@@ -193,6 +193,49 @@ function fillRoundRect(x, y, w, h, r) {
 	ctx.fill();
 }
 
+function strokeRoundRect(x, y, w, h, r) {
+	r = Math.min(r, w / 2, h / 2);
+	ctx.beginPath();
+	ctx.moveTo(x + r, y);
+	ctx.arcTo(x + w, y, x + w, y + h, r);
+	ctx.arcTo(x + w, y + h, x, y + h, r);
+	ctx.arcTo(x, y + h, x, y, r);
+	ctx.arcTo(x, y, x + w, y, r);
+	ctx.closePath();
+	ctx.stroke();
+}
+
+// ray vs axis-aligned obstacle rects (slab method); returns distance to first hit, capped at maxDist
+function castRay(ox, oy, dx, dy, maxDist) {
+	let t = maxDist;
+	if (obstacles != undefined) {
+		for (const o of obstacles) {
+			let tmin = -Infinity;
+			let tmax = Infinity;
+			if (dx !== 0) {
+				const t1 = (o.x - ox) / dx;
+				const t2 = (o.x + o.w - ox) / dx;
+				tmin = Math.max(tmin, Math.min(t1, t2));
+				tmax = Math.min(tmax, Math.max(t1, t2));
+			} else if (ox < o.x || ox > o.x + o.w) {
+				continue;
+			}
+			if (dy !== 0) {
+				const t1 = (o.y - oy) / dy;
+				const t2 = (o.y + o.h - oy) / dy;
+				tmin = Math.max(tmin, Math.min(t1, t2));
+				tmax = Math.min(tmax, Math.max(t1, t2));
+			} else if (oy < o.y || oy > o.y + o.h) {
+				continue;
+			}
+			if (tmax >= tmin && tmin > 0 && tmin < t) {
+				t = tmin;
+			}
+		}
+	}
+	return t;
+}
+
 // flat circle with a darker same-hue outline, like Evades X entities
 function drawOrb(x, y, r, color, strokeW) {
 	ctx.fillStyle = color;
@@ -1795,6 +1838,26 @@ function update(dt) {
 		bullet.trail.push({ x: bullet.x, y: bullet.y });
 		if (bullet.trail.length > 9) bullet.trail.shift();
 	}
+	// storm embers drifting inward from the danger zone
+	if (arena != null && camera.x != null && Math.random() < 0.5) {
+		const ex = camera.x + (Math.random() - 0.5) * canvas.width;
+		const ey = camera.y + (Math.random() - 0.5) * canvas.height;
+		const acx = arena.baseR ?? arena.r;
+		const edx = ex - acx;
+		const edy = ey - acx;
+		if (edx * edx + edy * edy > arena.r * arena.r) {
+			const eAng = Math.atan2(acx - ey, acx - ex);
+			particles.push({
+				x: ex, y: ey,
+				vx: Math.cos(eAng) * 40,
+				vy: Math.sin(eAng) * 40,
+				t: 0,
+				life: 1.4,
+				r: 2.5,
+				color: '#ff5f4f',
+			});
+		}
+	}
 	// particles
 	for (let i = particles.length - 1; i >= 0; i--) {
 		const p = particles[i];
@@ -1847,14 +1910,38 @@ function run() {
 		ctx.translate((Math.random() - 0.5) * 2 * shakePower, (Math.random() - 0.5) * 2 * shakePower);
 	}
     const a = offset(arena.baseR ?? arena.r, arena.baseR ?? arena.r);
-	// arena floor: dark tiles, storm-red rim marks the safe zone edge
+	const stormPulse = 0.5 + 0.5 * Math.sin(window.performance.now() / 300);
+	// danger field bleeding out from the storm wall
+	const stormGrad = ctx.createRadialGradient(a.x, a.y, Math.max(arena.r - 20, 0), a.x, a.y, arena.r + 340);
+	stormGrad.addColorStop(0, 'rgba(255, 64, 64, 0)');
+	stormGrad.addColorStop(0.1, `rgba(255, 64, 64, ${0.10 + stormPulse * 0.08})`);
+	stormGrad.addColorStop(1, 'rgba(120, 10, 16, 0.05)');
+	ctx.fillStyle = stormGrad;
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	// arena floor
 	ctx.fillStyle = '#23262d'
 	ctx.beginPath();
 	ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2)
 	ctx.fill()
-	ctx.strokeStyle = '#e05252';
-	ctx.lineWidth = 6;
+	// pulsing, glowing storm wall
+	ctx.strokeStyle = `rgba(255, ${70 + Math.round(stormPulse * 40)}, 70, ${0.85 + stormPulse * 0.15})`;
+	ctx.lineWidth = 5 + stormPulse * 3;
+	ctx.shadowColor = '#ff3b3b';
+	ctx.shadowBlur = 18 + stormPulse * 14;
 	ctx.stroke();
+	ctx.shadowBlur = 0;
+	// rotating hazard dashes just outside the wall
+	ctx.save();
+	ctx.translate(a.x, a.y);
+	ctx.rotate((window.performance.now() / 4000) % (Math.PI * 2));
+	ctx.strokeStyle = 'rgba(255, 90, 90, 0.35)';
+	ctx.lineWidth = 3;
+	ctx.setLineDash([26, 34]);
+	ctx.beginPath();
+	ctx.arc(0, 0, arena.r + 16, 0, Math.PI * 2);
+	ctx.stroke();
+	ctx.setLineDash([]);
+	ctx.restore();
 	ctx.save();
 	ctx.beginPath();
 	ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2);
@@ -1882,6 +1969,32 @@ function run() {
 			ctx.strokeRect(pos.x + 1.5, pos.y + 1.5, w - 3, h - 3);
 		}
 		ctx.restore();
+	}
+	// aim raycast: faint beam from your muzzle to the first obstacle it hits
+	if (me() != undefined) {
+		const rayAngle = me().angle;
+		const rayOx = me().isx + Math.cos(rayAngle) * (me().r + 6);
+		const rayOy = me().isy + Math.sin(rayAngle) * (me().r + 6);
+		const rayDist = castRay(rayOx, rayOy, Math.cos(rayAngle), Math.sin(rayAngle), 620);
+		const raySx = offsetX(rayOx);
+		const raySy = offsetY(rayOy);
+		const rayEx = offsetX(rayOx + Math.cos(rayAngle) * rayDist);
+		const rayEy = offsetY(rayOy + Math.sin(rayAngle) * rayDist);
+		const rayGrad = ctx.createLinearGradient(raySx, raySy, rayEx, rayEy);
+		rayGrad.addColorStop(0, 'rgba(154, 107, 255, 0.32)');
+		rayGrad.addColorStop(1, 'rgba(154, 107, 255, 0)');
+		ctx.strokeStyle = rayGrad;
+		ctx.lineWidth = 2;
+		ctx.beginPath();
+		ctx.moveTo(raySx, raySy);
+		ctx.lineTo(rayEx, rayEy);
+		ctx.stroke();
+		if (rayDist < 620) {
+			ctx.fillStyle = 'rgba(154, 107, 255, 0.35)';
+			ctx.beginPath();
+			ctx.arc(rayEx, rayEy, 3.5, 0, Math.PI * 2);
+			ctx.fill();
+		}
 	}
 	for (const playerId of Object.keys(players)) {
 		const player = players[playerId];
@@ -1943,7 +2056,10 @@ function run() {
 			}
 		}
 		ctx.globalAlpha = bAlpha;
+		ctx.shadowColor = bColor;
+		ctx.shadowBlur = 9;
 		drawOrb(x, y, bullet.r + 1.5, bColor);
+		ctx.shadowBlur = 0;
 		ctx.globalAlpha = 1;
         // for (let i = bullet.hist.length - 1; i >= 0; i--) {
         //     let { x, y } = bullet.hist[i];
@@ -1986,7 +2102,8 @@ function run() {
         //     ctx.translate(-pos.x, -pos.y);
         // }
     }
-	// particles (muzzle flashes, hit sparks)
+	// particles (muzzle flashes, hit sparks, storm embers) with additive bloom
+	ctx.globalCompositeOperation = 'lighter';
 	for (const p of particles) {
 		const f = 1 - p.t / p.life;
 		if (f <= 0) continue;
@@ -1996,6 +2113,7 @@ function run() {
 		ctx.arc(offsetX(p.x), offsetY(p.y), Math.max(p.r * f, 0.5), 0, Math.PI * 2);
 		ctx.fill();
 	}
+	ctx.globalCompositeOperation = 'source-over';
 	ctx.globalAlpha = 1;
  //    if (showServer) {
  //        for (const playerId of Object.keys(players)) {
@@ -2125,7 +2243,10 @@ function run() {
 			ctx.lineTo(x + 15, crownY + 8);
 			ctx.closePath();
 			ctx.fillStyle = '#ffcc00';
+			ctx.shadowColor = '#ffcc00';
+			ctx.shadowBlur = 10;
 			ctx.fill();
+			ctx.shadowBlur = 0;
 			ctx.strokeStyle = '#c79a00';
 			ctx.lineWidth = 2;
 			ctx.stroke();
@@ -2153,9 +2274,12 @@ function run() {
 			ctx.strokeStyle = 'blue'
 		}
         ctx.lineWidth = 3 + (player.armor / 100) * 13; // + armor
+		ctx.shadowColor = ctx.strokeStyle;
+		ctx.shadowBlur = 12;
         ctx.beginPath();
         ctx.arc(x, y, player.r - ctx.lineWidth/2 + 1, 0, Math.PI * 2);
         ctx.stroke();
+		ctx.shadowBlur = 0;
 		ctx.globalAlpha = 1;
 
 		if (player.powers.includes('Reflective Reload') && player.reflecting) {
@@ -2701,7 +2825,7 @@ function run() {
         outerRadius
     );
     grd.addColorStop(0, 'rgba(255,0,0,0)');
-    grd.addColorStop(1, 'rgba(255,0,0,' + (0.6 - (me().hp / 100)*0.6) + ')');
+    grd.addColorStop(1, 'rgba(255,0,0,' + (0.38 - (me().hp / 100)*0.38) + ')');
     ctx.fillStyle = grd;
     ctx.fill();
 
@@ -2800,8 +2924,13 @@ function run() {
 	ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
 	ctx.lineWidth = 4;
 	ctx.strokeText(tText, canvas.width / 2, 42);
+	if (urgent) {
+		ctx.shadowColor = '#ff5252';
+		ctx.shadowBlur = 16;
+	}
 	ctx.fillStyle = urgent ? '#ff5252' : '#ffffff';
 	ctx.fillText(tText, canvas.width / 2, 42);
+	ctx.shadowBlur = 0;
 
 	// round winner banner
 	if (winnerTimer > 0) {
@@ -2835,6 +2964,9 @@ function run() {
 	const rowH = 30;
 	ctx.fillStyle = 'rgba(20, 22, 27, 0.85)';
 	fillRoundRect(lbX, lbY, lbW, 44 + playerNames.length * rowH + 6, 10);
+	ctx.strokeStyle = 'rgba(154, 107, 255, 0.22)';
+	ctx.lineWidth = 1.5;
+	strokeRoundRect(lbX, lbY, lbW, 44 + playerNames.length * rowH + 6, 10);
 	ctx.font = '600 12px Inter, Arial';
 	ctx.textBaseline = 'middle';
 	ctx.textAlign = 'left';
@@ -2936,6 +3068,9 @@ function playerUI() {
 	// bottom HUD panel: near-opaque, high-contrast tracks and brighter fills
 	ctx.fillStyle = 'rgba(13, 15, 19, 0.92)';
 	fillRoundRect(canvas.width / 2 - 230, canvas.height - 64, 460, 64, 12);
+	ctx.strokeStyle = 'rgba(154, 107, 255, 0.22)';
+	ctx.lineWidth = 1.5;
+	strokeRoundRect(canvas.width / 2 - 230, canvas.height - 64, 460, 64, 12);
 
 	const barX = canvas.width / 2 - 175;
 	const barW = 350;
