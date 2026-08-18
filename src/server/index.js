@@ -53,14 +53,45 @@ function randRange(a, b) {
 function regenerateObstacles() {
 	obstacles.length = 0;
 	const S = arena.baseR * 2;
-	// inner ring walls (offset along their axis, never near the center)
+	// inner ring walls (offset along their axis, never near the center),
+	// often L-shaped with a stub pointing away from the center
 	const wallLen = snap50(randRange(900, 1400));
 	const wallDist = snap50(randRange(1000, 1250));
 	const wallJitter = () => snap50(randRange(-200, 200));
-	obstacles.push(new Obstacle(snap50(arena.baseR - wallLen / 2) + wallJitter(), wallDist, wallLen, 50));
-	obstacles.push(new Obstacle(snap50(arena.baseR - wallLen / 2) + wallJitter(), S - wallDist - 50, wallLen, 50));
-	obstacles.push(new Obstacle(wallDist, snap50(arena.baseR - wallLen / 2) + wallJitter(), 50, wallLen));
-	obstacles.push(new Obstacle(S - wallDist - 50, snap50(arena.baseR - wallLen / 2) + wallJitter(), 50, wallLen));
+	const ringWall = (horizontal, nearSide) => {
+		const along = snap50(arena.baseR - wallLen / 2) + wallJitter();
+		const edge = nearSide ? wallDist : S - wallDist - 50;
+		if (horizontal) {
+			obstacles.push(new Obstacle(along, edge, wallLen, 50));
+		} else {
+			obstacles.push(new Obstacle(edge, along, 50, wallLen));
+		}
+		if (Math.random() < 0.6) {
+			const stubLen = snap50(randRange(150, 400));
+			const stubAlong = Math.random() < 0.5 ? along : along + wallLen - 50;
+			const stubEdge = nearSide ? edge - stubLen : edge + 50;
+			if (horizontal) {
+				obstacles.push(new Obstacle(stubAlong, stubEdge, 50, stubLen));
+			} else {
+				obstacles.push(new Obstacle(stubEdge, stubAlong, stubLen, 50));
+			}
+		}
+	};
+	ringWall(true, true);
+	ringWall(true, false);
+	ringWall(false, true);
+	ringWall(false, false);
+	// loose scatter cover in the outer band
+	for (let i = 0; i < 6; i++) {
+		const sSize = snap50(randRange(100, 300));
+		const sAng = Math.random() * Math.PI * 2;
+		const sDist = randRange(1150, 1650);
+		obstacles.push(new Obstacle(
+			snap50(arena.baseR + Math.cos(sAng) * sDist - sSize / 2),
+			snap50(arena.baseR + Math.sin(sAng) * sDist - sSize / 2),
+			sSize, sSize
+		));
+	}
 	// corner blocks
 	for (const [sx, sy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
 		const size = snap50(randRange(250, 400));
