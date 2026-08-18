@@ -13,7 +13,10 @@ global.sendRate = 120;
 // global.gameSpeed = 0.5;
 let timer = 0;
 let globalTick = 0;
-const arena = { r: 700 };
+const arena = { r: 1000, baseR: 1000, minR: 380 };
+// round/storm cycle: arena shrinks over ROUND_TIME, then winner + reset
+const ROUND_TIME = 60;
+let roundTimer = ROUND_TIME;
 global.getBullets = () => bullets;
 let perfAmount = 0;
 // const obstacles = [
@@ -31,7 +34,22 @@ let perfAmount = 0;
 // ];
 // const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":300,"y":300,"width":200,"height":200,"type":"obstacle"},{"x":1100,"y":300,"width":200,"height":200,"type":"obstacle"},{"x":700,"y":700,"width":200,"height":200,"type":"obstacle"},{"x":300,"y":1100,"width":200,"height":200,"type":"obstacle"},{"x":1100,"y":1100,"width":200,"height":200,"type":"obstacle"},{"x":700,"y":500,"width":50,"height":200,"type":"obstacle"},{"x":850,"y":900,"width":50,"height":200,"type":"obstacle"}],"blocks":[],"arena":{"width":1600,"height":1600}}')
 
-const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":690,"y":600,"width":20,"height":200,"type":"obstacle"},{"x":600,"y":290,"width":200,"height":20,"type":"obstacle"},{"x":190,"y":400,"width":20,"height":200,"type":"obstacle"},{"x":920,"y":820,"width":160,"height":160,"type":"obstacle"},{"x":620,"y":1200,"width":160,"height":200,"type":"obstacle"},{"x":800,"y":190,"width":160,"height":160,"type":"obstacle"}],"blocks":[],"arena":{"width":1400,"height":1400}}')
+// 2000x2000 arena: center block, inner ring with diagonal gaps, corner blocks, cardinal pillars
+const obstacles = [
+	new Obstacle(925, 925, 150, 150),
+	new Obstacle(700, 550, 600, 30),
+	new Obstacle(700, 1420, 600, 30),
+	new Obstacle(550, 700, 30, 600),
+	new Obstacle(1420, 700, 30, 600),
+	new Obstacle(330, 330, 140, 140),
+	new Obstacle(1530, 330, 140, 140),
+	new Obstacle(330, 1530, 140, 140),
+	new Obstacle(1530, 1530, 140, 140),
+	new Obstacle(985, 200, 30, 220),
+	new Obstacle(985, 1580, 30, 220),
+	new Obstacle(200, 985, 220, 30),
+	new Obstacle(1580, 985, 220, 30),
+];
 // const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":600,"y":1200,"width":200,"height":200,"type":"obstacle"},{"x":0,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":600,"y":0,"width":200,"height":200,"type":"obstacle"},{"x":1200,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":650,"y":650,"width":100,"height":100,"type":"obstacle"}],"blocks":[],"arena":{"width":1400,"height":1400}}')
 
 // let obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":1150,"y":750,"width":100,"height":100,"type":"obstacle"},{"x":1050,"y":850,"width":100,"height":100,"type":"obstacle"},{"x":400,"y":550,"width":50,"height":100,"type":"obstacle"},{"x":200,"y":920,"width":200,"height":30,"type":"obstacle"},{"x":730,"y":320,"width":250,"height":30,"type":"obstacle"},{"x":900,"y":250,"width":150,"height":70,"type":"obstacle"},{"x":720,"y":1230,"width":50,"height":50,"type":"obstacle"}],"blocks":[],"arena":{"width":1600,"height":1600}}')
@@ -483,6 +501,34 @@ function ServerTick() {
     const dt = (Date.now() - lastTime) / 1000;
     lastTime = Date.now();
 
+	// storm round: shrink arena over the round, crown a winner, reset
+	roundTimer -= dt;
+	const roundProgress = 1 - Math.max(roundTimer, 0) / ROUND_TIME;
+	arena.r = arena.baseR - (arena.baseR - arena.minR) * roundProgress;
+	if (roundTimer <= 0) {
+		let winner = null;
+		for (const p of Object.values(players)) {
+			if (winner == null || p.kills > winner.kills) {
+				winner = p;
+			}
+		}
+		const roundEnd = {
+			name: winner != null && winner.kills > 0 ? winner.name : null,
+			kills: winner != null ? winner.kills : 0,
+		};
+		for (const id of Object.keys(clients)) {
+			if (clients[id].menu) continue;
+			send(id, { roundEnd });
+		}
+		for (const p of Object.values(players)) {
+			p.kills = 0;
+			p.totalDamage = 0;
+			p.dataChange = true;
+		}
+		roundTimer = ROUND_TIME;
+		arena.r = arena.baseR;
+	}
+
     timer += dt;
     while (timer >= 1 / tickRate) {
         timer -= 1 / tickRate;
@@ -870,8 +916,9 @@ function ServerTick() {
         delete bullets[id];
     }
     // if (changePack.length > 0) {
+		const round = { t: Math.round(Math.max(roundTimer, 0) * 10) / 10, r: Math.round(arena.r) };
         for (const clientId of Object.keys(clients)) {
-            send(clientId, { changePack,  bulletPack });
+            send(clientId, { changePack,  bulletPack, round });
         }
     // } else if (bulletPack.length > 0) {
     //     for (const clientId of Object.keys(clients)) {

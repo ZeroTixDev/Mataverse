@@ -32,6 +32,13 @@ let cameraAngle = 0;
 const bullets = {};
 let state = 'menu';
 
+// storm round state (synced from server)
+let roundTime = 60;
+let targetArenaR = null;
+let winnerTimer = 0;
+let winnerName = null;
+let winnerKills = 0;
+
 let showPassives = false;
 let showActives = false;
 
@@ -618,12 +625,8 @@ async function handleMessage(event, lag = true) {
 						}
 					}
 					weapon.classList.add('a-select')
-					document.body.style.background = Weapons[weapon.getAttribute('data-type')].color;
 				}
 			})
-			if (weapon.classList.contains('a-select')) {
-				document.body.style.background = Weapons[weapon.getAttribute('data-type')].color;
-			}
 		}
 		// for (const weapon of Array.from(weapons)) {
 		// 	const gunName = weapon.getAttribute('data-type');
@@ -659,8 +662,21 @@ async function handleMessage(event, lag = true) {
     }
     if (data.arena != undefined) {
         arena = data.arena;
+		targetArenaR = arena.r;
         music.play();
     }
+	if (data.round != undefined) {
+		roundTime = data.round.t;
+		if (arena != null) {
+			targetArenaR = data.round.r;
+		}
+	}
+	if (data.roundEnd != undefined) {
+		winnerTimer = 4;
+		winnerName = data.roundEnd.name;
+		winnerKills = data.roundEnd.kills;
+		addShake(6, 0.2);
+	}
 	if (data.obstacles != undefined) {
 		obstacles = data.obstacles;
 	}
@@ -1300,6 +1316,11 @@ function update(dt) {
     }
 
 	kTimer -= dt;
+	winnerTimer -= dt;
+	roundTime = Math.max(roundTime - dt, 0);
+	if (arena != null && targetArenaR != null) {
+		arena.r = lerp(arena.r, targetArenaR, dt * 4);
+	}
 
     if (hitDamageActivate) {
         hitDamageTimer += dt;
@@ -1802,7 +1823,7 @@ function run() {
 	yoff = lerp(yoff, -Math.sin(me().angle) * 75, dt * 5)
     update(dt)
 
-	ctx.fillStyle = '#26282d'
+	ctx.fillStyle = '#1c1216'
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (!arena) {
         // loading screen
@@ -1814,7 +1835,7 @@ function run() {
 		
         return;
     }
-	document.body.style.background = '#26282d'
+	document.body.style.background = '#1c1216'
     me().interpAngle = me().angle;
     // camera.x = (me().x + me().isx)/2;
     // camera.y = (me().y + me().isy)/2;
@@ -1827,20 +1848,20 @@ function run() {
 	if (shakeTime > 0 && shakePower > 0) {
 		ctx.translate((Math.random() - 0.5) * 2 * shakePower, (Math.random() - 0.5) * 2 * shakePower);
 	}
-    const a = offset(arena.r, arena.r);
-	// arena floor: light tiles, Evades X style
-	ctx.fillStyle = '#f4f5f7'
+    const a = offset(arena.baseR ?? arena.r, arena.baseR ?? arena.r);
+	// arena floor: dark tiles, storm-red rim marks the safe zone edge
+	ctx.fillStyle = '#23262d'
 	ctx.beginPath();
 	ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2)
 	ctx.fill()
-	ctx.strokeStyle = '#181a1e';
-	ctx.lineWidth = 8;
+	ctx.strokeStyle = '#e05252';
+	ctx.lineWidth = 6;
 	ctx.stroke();
 	ctx.save();
 	ctx.beginPath();
 	ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2);
 	ctx.clip();
-	drawTiles('#9aa2b1');
+	drawTiles('#4a5160');
 	ctx.restore();
 
 	 // ability effects and stuff
@@ -1851,10 +1872,10 @@ function run() {
 	if (obstacles != undefined) {
 		for (const { x, y, w, h } of obstacles) {
 			const pos = offset(x, y);
-			ctx.fillStyle = '#9aa0ad';
+			ctx.fillStyle = '#434a56';
 			ctx.fillRect(pos.x - 1, pos.y - 1, w + 2, h + 2);
 			ctx.lineWidth = 5;
-			ctx.strokeStyle = '#767d8c';
+			ctx.strokeStyle = '#2f343d';
 			ctx.strokeRect(pos.x + 1.5, pos.y + 1.5, w - 3, h - 3);
 		}
 	}
@@ -2320,7 +2341,7 @@ function run() {
 				ctx.fillStyle = Powers['Reflective Reload'].color;
 				ctx.fillRect(player.r + 4 - gunWidth-10, player.r + 2 - 10, 20, 20)
 			}
-			ctx.fillStyle = 'black';
+			ctx.fillStyle = '#e8eaf0';
 			ctx.font = '20px Work Sans, Arial';
 			ctx.textAlign = 'center';
 			if (player.lCharge) {
@@ -2365,7 +2386,7 @@ function run() {
 			//         );
 			// 	}
 			// }
-			ctx.fillStyle = 'black';
+			ctx.fillStyle = '#e8eaf0';
 			ctx.font = '20px Work Sans, Arial';
 			ctx.textAlign = 'center';
 			if (player.lCharge) {
@@ -2758,40 +2779,91 @@ function run() {
 	// ctx.lineWidth = 3;
 	// ctx.strokeRect(canvas.width / 2  - 150, canvas.height - 70, 300, 30);
 	playerUI()
-	ctx.fillStyle = 'gray';
-	
+
+	// storm round timer, top center
+	const rtW = 150;
+	const rtH = 46;
+	const urgent = roundTime <= 10;
+	ctx.fillStyle = 'rgba(20, 22, 27, 0.85)';
+	fillRoundRect(canvas.width / 2 - rtW / 2, 12, rtW, rtH, 10);
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+	ctx.font = 'bold 10px Work Sans, Arial';
+	ctx.fillStyle = urgent ? '#ff8a80' : '#8b93a3';
+	ctx.fillText('STORM SHRINKING', canvas.width / 2, 12 + 12);
+	const rSecs = Math.ceil(roundTime);
+	ctx.font = 'bold 22px Work Sans, Arial';
+	ctx.fillStyle = urgent ? '#ff5252' : '#e8eaf0';
+	ctx.fillText(`${Math.floor(rSecs / 60)}:${String(rSecs % 60).padStart(2, '0')}`, canvas.width / 2, 12 + 31);
+
+	// round winner banner
+	if (winnerTimer > 0) {
+		const wIn = 4 - winnerTimer;
+		const wScale = 1 + Math.max(0.4 - wIn * 2, 0);
+		ctx.globalAlpha = winnerTimer < 1 ? winnerTimer : 1;
+		ctx.lineJoin = 'round';
+		ctx.font = `bold ${Math.round(44 * wScale)}px Work Sans, Arial`;
+		const wText = winnerName != null ? `${winnerName} WINS THE ROUND` : 'ROUND OVER';
+		ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
+		ctx.lineWidth = 8;
+		ctx.strokeText(wText, canvas.width / 2, canvas.height / 2 - 130);
+		ctx.fillStyle = '#ffcc00';
+		ctx.fillText(wText, canvas.width / 2, canvas.height / 2 - 130);
+		ctx.font = 'bold 20px Work Sans, Arial';
+		const wSub = winnerName != null ? `${winnerKills} kill${winnerKills === 1 ? '' : 's'}` : 'no kills this round';
+		ctx.lineWidth = 5;
+		ctx.strokeText(wSub, canvas.width / 2, canvas.height / 2 - 92);
+		ctx.fillStyle = '#e8eaf0';
+		ctx.fillText(wSub, canvas.width / 2, canvas.height / 2 - 92);
+		ctx.globalAlpha = 1;
+	}
+
+	// leaderboard, top right
 	let playerNames = topPlayers()
 	playerNames.length = Math.min(playerNames.length, 5);
-	let height = (playerNames.length) * 30
-	ctx.fillStyle = 'white';
-	ctx.font = '20px Work Sans, Arial';
-	ctx.textAlign = 'center';
-	ctx.textBaseline = 'middle'
 	const playerCount = Object.keys(players).length;
-	ctx.fillText(`Leaderboard: ${playerCount} player${playerCount === 1 ? '': 's'}`, canvas.width - 125, 10)
-	ctx.fillStyle = 'rgba(24, 26, 31, 0.75)';
-	fillRoundRect(canvas.width - 250 + 25/2, 20, 225, height + 10, 10);
-	ctx.fillStyle = 'white';
-	let y = 35;
-	ctx.font = '18px Work Sans, Arial';
+	const lbW = 240;
+	const lbX = canvas.width - lbW - 15;
+	const lbY = 15;
+	const rowH = 30;
+	ctx.fillStyle = 'rgba(20, 22, 27, 0.85)';
+	fillRoundRect(lbX, lbY, lbW, 44 + playerNames.length * rowH + 6, 10);
+	ctx.font = 'bold 13px Work Sans, Arial';
+	ctx.textBaseline = 'middle';
+	ctx.textAlign = 'left';
+	ctx.fillStyle = '#8b93a3';
+	ctx.fillText('LEADERBOARD', lbX + 14, lbY + 20);
+	ctx.textAlign = 'right';
+	ctx.fillText(`${playerCount} online`, lbX + lbW - 14, lbY + 20);
+	ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+	ctx.fillRect(lbX + 10, lbY + 36, lbW - 20, 2);
+	const rankColors = ['#ffcc00', '#c0c8d4', '#cd8d5a'];
+	let lbRowY = lbY + 44 + rowH / 2;
 	let number = 1;
 	for (const player of playerNames) {
-		const name = player.name;
-		const kills = player.kills;
-		const dmg = player.totalDamage;
-		if (number === 1) {
-			ctx.fillStyle = '#ffcc00'
-		} else {
-			ctx.fillStyle = 'white'
+		if (player.id == selfId) {
+			ctx.fillStyle = 'rgba(79, 195, 247, 0.14)';
+			fillRoundRect(lbX + 6, lbRowY - rowH / 2 + 2, lbW - 12, rowH - 4, 6);
 		}
-		// [${kills}] (${dmg})
-		ctx.fillText(`${name} [${kills}]`, canvas.width - 125, y);
-		y += 30;
+		ctx.font = 'bold 15px Work Sans, Arial';
+		ctx.textAlign = 'left';
+		ctx.fillStyle = rankColors[number - 1] ?? '#8b93a3';
+		ctx.fillText(`${number}`, lbX + 14, lbRowY);
+		ctx.fillStyle = number === 1 ? '#ffcc00' : '#e8eaf0';
+		let lbName = player.name;
+		if (lbName.length > 14) {
+			lbName = lbName.slice(0, 13) + '…';
+		}
+		ctx.fillText(lbName, lbX + 34, lbRowY);
+		ctx.textAlign = 'right';
+		ctx.fillStyle = '#8b93a3';
+		ctx.fillText(`${player.kills}`, lbX + lbW - 14, lbRowY);
+		lbRowY += rowH;
 		number++;
 	}
 	if (hitDamageActivate) {
         ctx.font = '35px Work Sans, Arial';
-        ctx.fillStyle = 'black';
+        ctx.fillStyle = '#e8eaf0';
 		const hWidth = ctx.measureText('Hit Damage: ').width + ctx.measureText(`${hitDamage}`).width;
 		const dWidth = ctx.measureText(`${hitDamage}`).width
 		const tWidth = ctx.measureText(`+`).width
@@ -2873,11 +2945,17 @@ function playerUI() {
 		ctx.fillStyle = hpFrac > 0.3 ? '#ef5350' : '#ff1744';
 		fillRoundRect(canvas.width / 2 - 175, canvas.height - 26, Math.max(350 * hpFrac, 14), 20, 8);
 	}
-	ctx.font = 'bold 14px Work Sans, Arial';
+	ctx.font = 'bold 11px Work Sans, Arial';
 	ctx.textBaseline = 'middle'
-	ctx.fillStyle = 'white';
-	ctx.fillText(`${Math.round(sprintFrac * 100)}`, canvas.width / 2 - 165, canvas.height - 50 + 10)
-	ctx.fillText(`${Math.round(player.hp)}`, canvas.width / 2 - 165, canvas.height - 26 + 10)
+	ctx.textAlign = 'left';
+	ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+	ctx.fillText('ENERGY', canvas.width / 2 - 165, canvas.height - 50 + 10)
+	ctx.fillText('HEALTH', canvas.width / 2 - 165, canvas.height - 26 + 10)
+	ctx.font = 'bold 13px Work Sans, Arial';
+	ctx.textAlign = 'right';
+	ctx.fillText(`${Math.round(sprintFrac * 100)}%`, canvas.width / 2 + 165, canvas.height - 50 + 10)
+	ctx.fillText(`${Math.round(player.hp)}`, canvas.width / 2 + 165, canvas.height - 26 + 10)
+	ctx.textAlign = 'left';
 	// ctx.globalAlpha = 0.75
 	// ctx.fillStyle = 'black';
 	// // ctx.globalAlpha = 0.4;
