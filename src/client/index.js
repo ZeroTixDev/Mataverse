@@ -152,6 +152,78 @@ powerCanvas.height = 50;
 resize([canvas]);
 window.onresize = () => resize([canvas]);
 
+// --- Evades X style rendering helpers ---
+const _shadeCache = {};
+function shadeColor(hex, percent) {
+	const key = hex + '|' + percent;
+	if (_shadeCache[key] != undefined) return _shadeCache[key];
+	let h = hex;
+	if (h[0] !== '#') return h;
+	if (h.length === 4) {
+		h = '#' + h[1] + h[1] + h[2] + h[2] + h[3] + h[3];
+	}
+	const num = parseInt(h.slice(1), 16);
+	let r = (num >> 16) & 255;
+	let g = (num >> 8) & 255;
+	let b = num & 255;
+	r = Math.min(255, Math.max(0, Math.round(r * (100 + percent) / 100)));
+	g = Math.min(255, Math.max(0, Math.round(g * (100 + percent) / 100)));
+	b = Math.min(255, Math.max(0, Math.round(b * (100 + percent) / 100)));
+	const out = `rgb(${r},${g},${b})`;
+	_shadeCache[key] = out;
+	return out;
+}
+
+function fillRoundRect(x, y, w, h, r) {
+	r = Math.min(r, w / 2, h / 2);
+	ctx.beginPath();
+	ctx.moveTo(x + r, y);
+	ctx.arcTo(x + w, y, x + w, y + h, r);
+	ctx.arcTo(x + w, y + h, x, y + h, r);
+	ctx.arcTo(x, y + h, x, y, r);
+	ctx.arcTo(x, y, x + w, y, r);
+	ctx.closePath();
+	ctx.fill();
+}
+
+// flat circle with a darker same-hue outline, like Evades X entities
+function drawOrb(x, y, r, color, strokeW) {
+	ctx.fillStyle = color;
+	ctx.beginPath();
+	ctx.arc(x, y, r, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.strokeStyle = shadeColor(color, -30);
+	ctx.lineWidth = strokeW ?? Math.max(2, r * 0.28);
+	ctx.stroke();
+}
+
+let particles = [];
+function spawnParticles(x, y, color, count, speed, life, size, dir = null, spread = Math.PI * 2) {
+	for (let i = 0; i < count; i++) {
+		const a = dir == null ? Math.random() * Math.PI * 2 : dir + (Math.random() - 0.5) * spread;
+		const s = speed * (0.4 + Math.random() * 0.6);
+		particles.push({
+			x, y,
+			vx: Math.cos(a) * s,
+			vy: Math.sin(a) * s,
+			t: 0,
+			life: life * (0.6 + Math.random() * 0.4),
+			r: size * (0.6 + Math.random() * 0.8),
+			color,
+		});
+	}
+	if (particles.length > 400) {
+		particles.splice(0, particles.length - 400);
+	}
+}
+
+let shakeTime = 0;
+let shakePower = 0;
+function addShake(power, time) {
+	shakePower = Math.max(shakePower, power);
+	shakeTime = Math.max(shakeTime, time);
+}
+
 const players = {};
 
 let timer = 0;
@@ -572,12 +644,15 @@ async function handleMessage(event, lag = true) {
 			}
 		}
         hits.push({ x: data.hitX, y: data.hitY, dmg: data.hitDamage, t: 0, server: true, uid: data.uid});
+		spawnParticles(data.hitX, data.hitY, '#ffd54f', 8, 220, 0.45, 4);
+		addShake(4, 0.12);
     }
 	
 	if (data.killed != undefined) {
 		kTimer = 3;
 		kName = data.killed;
 		kAdj = kArr[Math.floor(Math.random() * kArr.length)]
+		addShake(7, 0.2);
 	}
     if (data.selfId != undefined) {
         selfId = data.selfId;
@@ -599,6 +674,14 @@ async function handleMessage(event, lag = true) {
 	if (data.gotHit != undefined) {
 		gotHitTimer = 0;
 		gotHitStorm = false;
+		if (data.storm) {
+			addShake(3, 0.1);
+		} else {
+			addShake(9, 0.25);
+			if (players[selfId]) {
+				spawnParticles(me().x, me().y, '#ef5350', 12, 260, 0.5, 4);
+			}
+		}
 		if (data.storm != undefined) {
 			gotHitStorm = data.storm;
 		}
@@ -1099,7 +1182,7 @@ function createTileImg(color) {
     // cx.imageSmoothingEnabled = false;
 
     // tile background
-    cx.globalAlpha = 0.06;
+    cx.globalAlpha = 0.4;
     cx.strokeStyle = color;
     cx.lineWidth = 2;
     for (let y = 0; y <= /*size / scale*/h; y += tileSize) {
@@ -1320,6 +1403,11 @@ function update(dt) {
 			}
 	        send(pack);
 			me().lastShot = window.performance.now()
+			// muzzle flash + tiny recoil kick
+			const muzzleX = me().isx + Math.cos(me().angle) * (me().r + 20);
+			const muzzleY = me().isy + Math.sin(me().angle) * (me().r + 20);
+			spawnParticles(muzzleX, muzzleY, '#ffb74d', 5, 320, 0.22, 3, me().angle, 0.6);
+			addShake(2.5, 0.08);
 			if (me().weapon === 'Burst') {
 				if (me().burstTally == undefined) {
 					me().burstTally = 0;
@@ -1681,6 +1769,28 @@ function update(dt) {
 		gotHitTimer += dt;
 	}
 
+	// bullet trails
+	for (const bulletId of Object.keys(bullets)) {
+		const bullet = bullets[bulletId];
+		if (bullet.trail == undefined) bullet.trail = [];
+		bullet.trail.push({ x: bullet.x, y: bullet.y });
+		if (bullet.trail.length > 9) bullet.trail.shift();
+	}
+	// particles
+	for (let i = particles.length - 1; i >= 0; i--) {
+		const p = particles[i];
+		p.t += dt;
+		p.x += p.vx * dt;
+		p.y += p.vy * dt;
+		p.vx *= 0.92;
+		p.vy *= 0.92;
+		if (p.t >= p.life) particles.splice(i, 1);
+	}
+	// screen shake decay
+	if (shakeTime > 0) {
+		shakeTime -= dt;
+		if (shakeTime <= 0) shakePower = 0;
+	}
 }
 function run() {
     requestAnimationFrame(run);
@@ -1692,15 +1802,11 @@ function run() {
 	yoff = lerp(yoff, -Math.sin(me().angle) * 75, dt * 5)
     update(dt)
 
-    // ctx.fillStyle = '#002905';
-	// ctx.fillStyle = '#041e45'
-	// ctx.fillStyle = '#363636'
-	ctx.fillStyle = '#545454'
-	// ctx.fillStyle = '#7d463d'
+	ctx.fillStyle = '#26282d'
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (!arena) {
         // loading screen
-        ctx.fillStyle = '#2b2b2b';
+        ctx.fillStyle = '#e8e8e8';
         ctx.font = '100px Work Sans, Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -1708,8 +1814,7 @@ function run() {
 		
         return;
     }
-	// document.body.style.background = '#363636'
-	document.body.style.background = '#545454'
+	document.body.style.background = '#26282d'
     me().interpAngle = me().angle;
     // camera.x = (me().x + me().isx)/2;
     // camera.y = (me().y + me().isy)/2;
@@ -1719,25 +1824,24 @@ function run() {
 	ctx.translate(canvas.width / 2, canvas.height / 2);
   	ctx.rotate(cameraAngle);
   	ctx.translate(-canvas.width / 2, -canvas.height / 2);
+	if (shakeTime > 0 && shakePower > 0) {
+		ctx.translate((Math.random() - 0.5) * 2 * shakePower, (Math.random() - 0.5) * 2 * shakePower);
+	}
     const a = offset(arena.r, arena.r);
-    // ctx.fillStyle = '#d4d4d4';
-	// ctx.fillStyle = '#1b8014'
-	// ctx.fillStyle = '#1c3094'
-	// ctx.fillStyle = '#919191'
-	
-	// ctx.fillStyle = '#919191'
-	ctx.fillStyle = '#b3b3b3'
-	// ctx.fillStyle = '#816f5a'
+	// arena floor: light tiles, Evades X style
+	ctx.fillStyle = '#f4f5f7'
 	ctx.beginPath();
 	ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2)
 	ctx.fill()
-    // ctx.fillRect(a.x, a.y, arena.w, arena.h);
-    // drawTiles('#6e6e6e');
-	// drawTiles('#002905')
-	// drawTiles('#041e45')
-	// drawTiles('#363636')
-	drawTiles('#545454')
-	// drawTiles('#7d463d')
+	ctx.strokeStyle = '#181a1e';
+	ctx.lineWidth = 8;
+	ctx.stroke();
+	ctx.save();
+	ctx.beginPath();
+	ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2);
+	ctx.clip();
+	drawTiles('#9aa2b1');
+	ctx.restore();
 
 	 // ability effects and stuff
 	
@@ -1746,23 +1850,19 @@ function run() {
 	
 	if (obstacles != undefined) {
 		for (const { x, y, w, h } of obstacles) {
-			ctx.lineWidth = 6;
-			ctx.fillStyle = '#545454'
-			// ctx.fillStyle = '#ffa340'
-			// ctx.strokeStyle = '#363636'
-			// if (w < 25 || h < 25) {
-			// 	ctx.fillStyle = '#91a7ff'
-			// }
 			const pos = offset(x, y);
-			ctx.fillRect(pos.x - 1,  pos.y - 1, w + 2, h + 2);
-			// ctx.strokeRect(Math.round(pos.x) - 1, Math.round(pos.y) - 1, w + 2, h + 2);
+			ctx.fillStyle = '#9aa0ad';
+			ctx.fillRect(pos.x - 1, pos.y - 1, w + 2, h + 2);
+			ctx.lineWidth = 5;
+			ctx.strokeStyle = '#767d8c';
+			ctx.strokeRect(pos.x + 1.5, pos.y + 1.5, w - 3, h - 3);
 		}
 	}
 	for (const playerId of Object.keys(players)) {
 		const player = players[playerId];
 		if (player.powers.includes('Quantum Field')) {
 			if (!player._qf) continue;
-			ctx.fillStyle = '#ffeded'
+			ctx.fillStyle = '#ef9a9a'
 			ctx.globalAlpha = 0.5 //- ((player._qf.t/5)*0.4);
 			ctx.beginPath();
 			ctx.arc(offsetX(player._qf.x), offsetY(player._qf.y), player._qf.r, 0, Math.PI * 2);
@@ -1786,55 +1886,42 @@ function run() {
             );
             ctx.fill();
         }
-		if (bullet.life - bullet.lifeTimer <= 0.3) {
-			ctx.globalAlpha = (bullet.life - bullet.lifeTimer) / 0.3;
-		}
-		ctx.globalAlpha = 1;
-		ctx.fillStyle = 'black'
-        let x = offsetX(bullet.x) 
+        let x = offsetX(bullet.x)
         let y = offsetY(bullet.y)
-  //       ctx.fillStyle = 'blue';
-		// ctx.beginPath()
-  //       ctx.arc(x, y, bullet.r, 0, Math.PI * 2);
-  //       ctx.fill();
-		// ctx.globalAlpha = 1;
-		
-		ctx.fillStyle = 'black';
+		let bColor = '#2f3138';
+		const bParent = players[bullet.parent];
+		if (bParent && Weapons[bParent.weapon]) {
+			bColor = Weapons[bParent.weapon].color;
+		}
 		if (bullet.magz) {
-			// ctx.fillStyle = Powers['Magz of War'].color;
-			ctx.fillStyle = '#071eb0'
+			bColor = '#3d5afe';
 		}
 		if (Math.abs(bullet.curveFactor) > 0) {
-			// ctx.fillStyle = '#1d631f'//'#d878ff'
-			ctx.fillStyle = Powers['Bended Barrel'].color;
-			
+			bColor = Powers['Bended Barrel'].color;
 		}
 		if (bullet.rev) {
-			ctx.fillStyle = Powers['Bullet Boomerang'].color;
+			bColor = Powers['Bullet Boomerang'].color;
+		}
+		let bAlpha = 1;
+		if (bullet.life - bullet.lifeTimer <= 0.3) {
+			bAlpha = Math.max((bullet.life - bullet.lifeTimer) / 0.3, 0);
 		}
 		if (bullet.invis) {
-			// ctx.fillStyle = 'red'
-			ctx.globalAlpha = 0.4;
+			bAlpha = Math.min(bAlpha, 0.4);
 		}
-		// ctx.beginPath();
-		// ctx.arc(x, y, bullet.r, 0, Math.PI * 2);
-		// ctx.fill()
-		ctx.translate(x, y);
-		ctx.rotate(bullet.angle);
-		ctx.fillRect(-bullet.r - 2.5, -bullet.r/3, bullet.r*2 + 5, bullet.r/(3/2));
-		if (bullet.magz) {
-			ctx.strokeStyle = 'black'
-			ctx.lineWidth = 1;
-			// ctx.strokeRect(-bullet.r - 2.5 + 1, -bullet.r/3 + 1, bullet.r*2 + 5 - 2, bullet.r/(3/2) - 2);
+		if (bullet.trail != undefined) {
+			for (let i = 0; i < bullet.trail.length; i++) {
+				const p = bullet.trail[i];
+				const f = (i + 1) / bullet.trail.length;
+				ctx.globalAlpha = bAlpha * f * 0.2;
+				ctx.fillStyle = bColor;
+				ctx.beginPath();
+				ctx.arc(offsetX(p.x), offsetY(p.y), Math.max(bullet.r * (0.35 + 0.65 * f), 1), 0, Math.PI * 2);
+				ctx.fill();
+			}
 		}
-		if (Math.abs(bullet.curveFactor) > 0) {
-			ctx.strokeStyle = 'black'
-			let s = 1.75
-			ctx.lineWidth = s;
-			ctx.strokeRect(-bullet.r - 2.5 - s/4, -bullet.r/3 - s/4, bullet.r*2 + 5 + s/2, bullet.r/(3/2) + s/2)
-		}
-		ctx.rotate(-bullet.angle);
-		ctx.translate(-x, -y)
+		ctx.globalAlpha = bAlpha;
+		drawOrb(x, y, bullet.r + 1.5, bColor);
 		ctx.globalAlpha = 1;
         // for (let i = bullet.hist.length - 1; i >= 0; i--) {
         //     let { x, y } = bullet.hist[i];
@@ -1877,6 +1964,17 @@ function run() {
         //     ctx.translate(-pos.x, -pos.y);
         // }
     }
+	// particles (muzzle flashes, hit sparks)
+	for (const p of particles) {
+		const f = 1 - p.t / p.life;
+		if (f <= 0) continue;
+		ctx.globalAlpha = f;
+		ctx.fillStyle = p.color;
+		ctx.beginPath();
+		ctx.arc(offsetX(p.x), offsetY(p.y), Math.max(p.r * f, 0.5), 0, Math.PI * 2);
+		ctx.fill();
+	}
+	ctx.globalAlpha = 1;
  //    if (showServer) {
  //        for (const playerId of Object.keys(players)) {
  //            const player = players[playerId];
@@ -1973,86 +2071,59 @@ function run() {
 			x = offsetX(player.invisX);
 			y = offsetY(player.invisY);
 		}
-        ctx.fillStyle = '#e31212';
+		let baseColor = playerId == selfId ? '#31a2f2' : '#f0563f';
 		if (player.shifting) {
-			ctx.fillStyle = '#ff7700'
-			// ctx.fillStyle = 'white'
+			baseColor = '#ffa726';
 		}
 		if (player.skating) {
-			ctx.fillStyle = '#00d9ff';
+			baseColor = '#00d9ff';
 		}
 		if (player.preSkating) {
-			ctx.fillStyle = '#007e94'
+			baseColor = '#0097a7';
 		}
-        ctx.globalAlpha = 0.3;
-		// if (topPlayers()[0].id == selfId) {
-		// 	ctx.shadowBlur = 20;
-		// 	ctx.shadowColor = '#ffcc00';
-		// } else {
-		// 	ctx.shadowBlur = 0;
-		// }
-		
-		if (topPlayers()[0].id == playerId) {
-			ctx.shadowBlur = 0
-			ctx.shadowColor = '#ffcc00';
-		} else {
-			ctx.shadowBlur = 0;
+		if (player.powers.includes('Magz of War') && player.magz) {
+			baseColor = '#5c6bc0';
 		}
-		// ctx.fillStyle = 'black'
-		if (player.powers.includes('Magz of War')) {
-			if (player.magz) {
-				ctx.fillStyle = 'black'
-			}
-			// if (player.reloadTimer > player.reloadTime && player.reloadTimer < player.reloadTime + 1) {
-			// 	ctx.fillStyle = Powers['Magz of War'].color
-			// }
-		}
-		
-		
-
 		if (player.lCharge) {
-			ctx.fillStyle = 'red'
+			baseColor = '#ff1744';
 		}
-
+		// gold halo for the current leader
+		if (topPlayers()[0].id == playerId && Object.keys(players).length > 1) {
+			ctx.strokeStyle = '#ffcc00';
+			ctx.lineWidth = 4;
+			ctx.beginPath();
+			ctx.arc(x, y, player.r + 7, 0, Math.PI * 2);
+			ctx.stroke();
+		}
+		let bodyAlpha = 1;
+		if (player.powers.includes('Shadow Reload') && player.invis && playerId == selfId) {
+			bodyAlpha = 0;
+		} else if (player.invis && player.powers.includes('Shadow Reload')) {
+			bodyAlpha = 0.25;
+		}
+		// faded full-size body shows missing health
+		ctx.globalAlpha = Math.min(0.3, bodyAlpha);
+		ctx.fillStyle = baseColor;
         ctx.beginPath();
         ctx.arc(x, y, player.r, 0, Math.PI * 2);
         ctx.fill();
-		
-        ctx.globalAlpha = 1;
-		if (player.powers.includes('Shadow Reload') && player.invis && playerId == selfId) {
-			// ctx.fillStyle = 'black'
-			ctx.globalAlpha = 0
-		}
-		if (player.invis && player.powers.includes('Shadow Reload')) {
-			ctx.globalAlpha = 0.25;
-		}
-		if (player.powers.includes('Magz of War')) {
-			if (player.magz) {
-				ctx.fillStyle = Powers['Magz of War'].color;
-			}
-			// if (player.reloadTimer > player.reloadTime && player.reloadTimer < player.reloadTime + 1) {
-			// 	ctx.fillStyle = Powers['Magz of War'].color
-			// }
-		}
+        ctx.globalAlpha = bodyAlpha;
         ctx.beginPath();
         ctx.arc(x, y, player.r * (player.hp / 100), 0, Math.PI * 2);
         ctx.fill();
-		
-		
-        ctx.strokeStyle = '#303030';
+		// darker same-hue outline, thickened by armor
+        ctx.strokeStyle = shadeColor(baseColor, -32);
 		if (player.lCharge) {
 			ctx.strokeStyle = 'red'
 		}
 		if (player.accurateNext) {
 			ctx.strokeStyle = 'blue'
 		}
-		if (player.bending) {
-			// ctx.strokeStyle = '#d878ff'//Powers['Bended Barrel'].color;
-		}
-        ctx.lineWidth = 2 + (player.armor / 100) * 13; // + armor
+        ctx.lineWidth = 3 + (player.armor / 100) * 13; // + armor
         ctx.beginPath();
         ctx.arc(x, y, player.r - ctx.lineWidth/2 + 1, 0, Math.PI * 2);
         ctx.stroke();
+		ctx.globalAlpha = 1;
 
 		if (player.powers.includes('Reflective Reload') && player.reflecting) {
 			ctx.lineWidth = 10;
@@ -2150,11 +2221,14 @@ function run() {
 					// ctx.stroke()
 				}
 			}
-        	ctx.fillText(	
-	            player.name/* + '' + player.kills + ''*/,
-	            x,
-	            y + player.r * (1.5 /*+ 0.2 * (player.armor / 100)*/)
-	        );
+			// Evades-style name: white with dark outline
+			ctx.font = 'bold 18px Work Sans, Arial';
+			ctx.lineJoin = 'round';
+			ctx.strokeStyle = 'rgba(30, 33, 38, 0.85)';
+			ctx.lineWidth = 4;
+			ctx.strokeText(player.name, x, y + player.r * 1.5);
+			ctx.fillStyle = 'white';
+			ctx.fillText(player.name, x, y + player.r * 1.5);
 		}
 	
         ctx.fillStyle = 'white';
@@ -2553,14 +2627,20 @@ function run() {
 		// }
 	}
 
+	// rising damage numbers at the hit location
     for (const { x, y, server, t, dmg } of hits) {
-        // ctx.fillStyle = server ? 'black': 'white';
-		ctx.fillStyle = 'black'
-		if (!server || t > 0.4) continue;
-        ctx.font = '30px Work Sans, Arial';
+		if (!server || t > 0.8) continue;
+		const rise = t * 45;
+		ctx.globalAlpha = t < 0.1 ? t / 0.1 : (t > 0.6 ? Math.max(1 - (t - 0.6) / 0.2, 0) : 1);
+        ctx.font = 'bold 26px Work Sans, Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`X`, offsetX(x), offsetY(y));
+		ctx.lineJoin = 'round';
+		ctx.strokeStyle = 'rgba(30, 33, 38, 0.9)';
+		ctx.lineWidth = 5;
+		ctx.strokeText(`-${dmg}`, offsetX(x), offsetY(y) - rise);
+		ctx.fillStyle = '#ffd54f';
+		ctx.fillText(`-${dmg}`, offsetX(x), offsetY(y) - rise);
         ctx.globalAlpha = 1;
     }
 	// ctx.restore()
@@ -2616,7 +2696,7 @@ function run() {
 		ctx.globalAlpha = 1;
 	}
 
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = '#c7cdd8';
     ctx.font = '15px Work Sans, Arial';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
@@ -2689,10 +2769,8 @@ function run() {
 	ctx.textBaseline = 'middle'
 	const playerCount = Object.keys(players).length;
 	ctx.fillText(`Leaderboard: ${playerCount} player${playerCount === 1 ? '': 's'}`, canvas.width - 125, 10)
-	ctx.fillStyle = 'black'
-	ctx.globalAlpha = 0.6;
-	ctx.fillRect(canvas.width - 250 + 25/2, 20, 225, height);
-	ctx.globalAlpha = 1;
+	ctx.fillStyle = 'rgba(24, 26, 31, 0.75)';
+	fillRoundRect(canvas.width - 250 + 25/2, 20, 225, height + 10, 10);
 	ctx.fillStyle = 'white';
 	let y = 35;
 	ctx.font = '18px Work Sans, Arial';
@@ -2730,10 +2808,19 @@ function run() {
 		}
     }
 	if (kTimer >= 0) {
-		ctx.fillStyle = 'black';
-		ctx.font = '25px Work Sans, Arial';
+		// pop-in gold kill banner
+		const tIn = 3 - kTimer;
+		const scale = 1 + Math.max(0.5 - tIn * 2.5, 0);
 		ctx.globalAlpha = kTimer <= 1 ? (kTimer/1): 1;
+		ctx.font = `bold ${Math.round(30 * scale)}px Work Sans, Arial`;
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
 		let adj = kAdj.charAt(0) + kAdj.slice(1).toLowerCase();
+		ctx.lineJoin = 'round';
+		ctx.strokeStyle = 'rgba(30, 33, 38, 0.9)';
+		ctx.lineWidth = 6;
+		ctx.strokeText(`${adj} ${kName}`, canvas.width / 2, canvas.height - 175);
+		ctx.fillStyle = '#ffcc00';
 		ctx.fillText(`${adj} ${kName}`, canvas.width / 2, canvas.height - 175)
 		ctx.globalAlpha = 1;
 	}
@@ -2762,40 +2849,35 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
 function playerUI() {
 	// return;
 	const player = me();
-	ctx.fillStyle = '#292929'
-	ctx.globalAlpha = 0.75
-	ctx.fillRect(canvas.width /2 - 225, canvas.height - 52, 450, 52);
-	ctx.globalAlpha = 1;
-	
-	ctx.fillStyle = '#7a7a7a';
+	// bottom HUD panel, Evades X style rounded bars
+	ctx.fillStyle = 'rgba(24, 26, 31, 0.8)';
+	fillRoundRect(canvas.width / 2 - 225, canvas.height - 58, 450, 58, 10);
+
+	// sprint (energy) bar
+	let sprintColor = '#4fc3f7';
 	if (me().denied || me().denying) {
-		ctx.fillStyle = '#5e391c'
+		sprintColor = '#ff7700';
 	}
-	ctx.fillRect(canvas.width / 2 - 175, canvas.height - 50, 350, 25);
-	ctx.fillStyle = '#700000'; 
-	ctx.fillRect(canvas.width / 2 - 175, canvas.height - 25, 350, 25);
-	ctx.fillStyle = 'white';
-	if (me().denied || me().denying) {
-		ctx.fillStyle = '#ff7700'
+	ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+	fillRoundRect(canvas.width / 2 - 175, canvas.height - 50, 350, 20, 8);
+	const sprintFrac = Math.max(Math.min(player.cshift / player.shiftLength, 1), 0);
+	if (sprintFrac > 0.01) {
+		ctx.fillStyle = sprintColor;
+		fillRoundRect(canvas.width / 2 - 175, canvas.height - 50, Math.max(350 * sprintFrac, 14), 20, 8);
 	}
-	ctx.fillRect(canvas.width / 2 - 175, canvas.height - 50, 350 * (player.cshift/player.shiftLength), 25)
-	ctx.fillStyle = '#e31212';
-	ctx.fillRect(canvas.width / 2 - 175, canvas.height - 25, 350 * (player.hp / 100), 25);
-	ctx.lineWidth = 3;
-	ctx.strokeStyle = 'black'
-	if (me().denied || me().denying) {
-		ctx.strokeStyle = '#240700'
+	// health bar
+	ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+	fillRoundRect(canvas.width / 2 - 175, canvas.height - 26, 350, 20, 8);
+	const hpFrac = Math.max(Math.min(player.hp / 100, 1), 0);
+	if (hpFrac > 0.01) {
+		ctx.fillStyle = hpFrac > 0.3 ? '#ef5350' : '#ff1744';
+		fillRoundRect(canvas.width / 2 - 175, canvas.height - 26, Math.max(350 * hpFrac, 14), 20, 8);
 	}
-	ctx.strokeRect(canvas.width / 2 - 175, canvas.height - 50, 350, 25);
-	ctx.fillStyle = ctx.strokeStyle;
-	ctx.font = '15px Work Sans, Arial';
+	ctx.font = 'bold 14px Work Sans, Arial';
 	ctx.textBaseline = 'middle'
-	ctx.fillText(`${Math.round((player.cshift/player.shiftLength)*100)}`, canvas.width / 2 - 175 + 10, canvas.height - 50 + 25/2)
-	
-	ctx.strokeStyle = 'black';
-	ctx.strokeRect(canvas.width / 2 - 175, canvas.height - 25, 350, 25);
-	ctx.fillStyle = 'white'
-	ctx.fillText(`${Math.round(player.hp)}`, canvas.width / 2 - 175 + 10, canvas.height - 25 + 25/2)
+	ctx.fillStyle = 'white';
+	ctx.fillText(`${Math.round(sprintFrac * 100)}`, canvas.width / 2 - 165, canvas.height - 50 + 10)
+	ctx.fillText(`${Math.round(player.hp)}`, canvas.width / 2 - 165, canvas.height - 26 + 10)
 	// ctx.globalAlpha = 0.75
 	// ctx.fillStyle = 'black';
 	// // ctx.globalAlpha = 0.4;
