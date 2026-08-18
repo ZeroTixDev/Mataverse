@@ -68,6 +68,33 @@ function regenerateObstacles() {
 			size, size
 		));
 	}
+	// mid-field cover: one block per quadrant, close to the action,
+	// but the inner 500px around the center always stays clear
+	for (const [sx, sy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+		const size = snap50(randRange(100, 250));
+		let dx = snap50(randRange(400, 750));
+		let dy = snap50(randRange(400, 750));
+		while (dx * dx + dy * dy < 500 * 500) {
+			dx += 50;
+		}
+		obstacles.push(new Obstacle(
+			sx === 0 ? arena.baseR - dx - size : arena.baseR + dx,
+			sy === 0 ? arena.baseR - dy - size : arena.baseR + dy,
+			size, size
+		));
+	}
+	// two short mid walls just outside the clear zone
+	for (let i = 0; i < 2; i++) {
+		const len = snap50(randRange(250, 450));
+		const d = snap50(randRange(550, 800)) * (Math.random() < 0.5 ? -1 : 1);
+		const along = snap50(randRange(-400, 400));
+		const edge = arena.baseR + d - (d > 0 ? 0 : 50);
+		if (Math.random() < 0.5) {
+			obstacles.push(new Obstacle(snap50(arena.baseR - len / 2) + along, edge, len, 50));
+		} else {
+			obstacles.push(new Obstacle(edge, snap50(arena.baseR - len / 2) + along, 50, len));
+		}
+	}
 	// cardinal pillars
 	const northLen = snap50(randRange(350, 550));
 	const southLen = snap50(randRange(350, 550));
