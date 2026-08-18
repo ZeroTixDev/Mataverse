@@ -2939,39 +2939,43 @@ function playerUI() {
 
 	const barX = canvas.width / 2 - 175;
 	const barW = 350;
-	// energy bar
-	let sprintColor = '#3bc9ff';
+	// energy bar (Evades purple)
+	let sprintColor = '#9a6bff';
 	if (me().denied || me().denying) {
 		sprintColor = '#ff7700';
 	}
 	const sprintFrac = Math.max(Math.min(player.cshift / player.shiftLength, 1), 0);
-	ctx.fillStyle = '#2a2e36';
+	ctx.fillStyle = '#22252d';
 	fillRoundRect(barX, canvas.height - 56, barW, 22, 11);
 	if (sprintFrac > 0.01) {
 		ctx.fillStyle = sprintColor;
 		fillRoundRect(barX, canvas.height - 56, Math.max(barW * sprintFrac, 18), 22, 11);
 	}
-	// health bar
+	// health bar (green, red when critical)
 	const hpFrac = Math.max(Math.min(player.hp / 100, 1), 0);
-	ctx.fillStyle = '#2a2e36';
+	ctx.fillStyle = '#22252d';
 	fillRoundRect(barX, canvas.height - 30, barW, 22, 11);
 	if (hpFrac > 0.01) {
-		ctx.fillStyle = hpFrac > 0.3 ? '#ff5964' : '#ff1744';
+		ctx.fillStyle = hpFrac > 0.3 ? '#42d77d' : '#ff4757';
 		fillRoundRect(barX, canvas.height - 30, Math.max(barW * hpFrac, 18), 22, 11);
 	}
+	// stroked text stays readable over both the bright fill and the dark track
+	const barText = (text, tx, ty, align) => {
+		ctx.textAlign = align;
+		ctx.lineJoin = 'round';
+		ctx.strokeStyle = 'rgba(10, 12, 16, 0.85)';
+		ctx.lineWidth = 3;
+		ctx.strokeText(text, tx, ty);
+		ctx.fillStyle = '#ffffff';
+		ctx.fillText(text, tx, ty);
+	};
 	ctx.textBaseline = 'middle';
-	ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
-	ctx.shadowBlur = 4;
-	ctx.font = '700 11px Inter, Arial';
-	ctx.textAlign = 'left';
-	ctx.fillStyle = '#ffffff';
-	ctx.fillText('ENERGY', barX + 12, canvas.height - 56 + 11);
-	ctx.fillText('HEALTH', barX + 12, canvas.height - 30 + 11);
+	ctx.font = '700 12px Inter, Arial';
+	barText('ENERGY', barX + 12, canvas.height - 56 + 11, 'left');
+	barText('HEALTH', barX + 12, canvas.height - 30 + 11, 'left');
 	ctx.font = '700 13px Inter, Arial';
-	ctx.textAlign = 'right';
-	ctx.fillText(`${Math.round(sprintFrac * 100)}%`, barX + barW - 12, canvas.height - 56 + 11);
-	ctx.fillText(`${Math.round(player.hp)}`, barX + barW - 12, canvas.height - 30 + 11);
-	ctx.shadowBlur = 0;
+	barText(`${Math.round(sprintFrac * 100)}%`, barX + barW - 12, canvas.height - 56 + 11, 'right');
+	barText(`${Math.round(player.hp)}`, barX + barW - 12, canvas.height - 30 + 11, 'right');
 	ctx.textAlign = 'left';
 	// ctx.globalAlpha = 0.75
 	// ctx.fillStyle = 'black';

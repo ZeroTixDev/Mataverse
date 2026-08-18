@@ -5,12 +5,12 @@
 }
 
 body {
-    background: #15161a;
+    background: #14121b;
     transition: background 0.2s linear;
     font-size: 16px;
     font-family: 'Inter', Arial, sans-serif;
     font-weight: 400;
-    color: #e8eaf0;
+    color: #e8e6f0;
 }
 
 canvas {
@@ -26,28 +26,53 @@ canvas {
     flex-direction: column;
     height: 100vh;
     width: 100vw;
-    background: radial-gradient(circle at 50% 15%, #23262d 0%, #15161a 60%);
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+        radial-gradient(900px 500px at 50% -12%, rgba(139, 92, 246, 0.28), transparent 65%),
+        radial-gradient(700px 420px at 85% 115%, rgba(139, 92, 246, 0.10), transparent 60%),
+        #14121b;
+    background-size: 44px 44px, 44px 44px, auto, auto, auto;
 }
 
 .title {
-    font-size: 3.5rem;
+    font-size: 3.4rem;
     font-weight: 700;
-    letter-spacing: 0.15rem;
+    font-style: italic;
+    letter-spacing: 0.12rem;
     color: #ffffff;
+    text-shadow: 0 0 24px rgba(139, 92, 246, 0.55);
     position: absolute;
     top: 0;
     width: 100vw;
-    padding: 14px 0;
+    padding: 12px 0 16px 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    background: rgba(10, 11, 14, 0.6);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(12, 10, 18, 0.72);
+    border-bottom: 2px solid rgba(139, 92, 246, 0.45);
+}
+
+.title-accent {
+    color: #a78bfa;
+    text-shadow: 0 0 18px rgba(167, 139, 250, 0.8);
+}
+
+.tagline {
+    position: absolute;
+    top: 108px;
+    width: 100vw;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.3rem;
+    text-transform: uppercase;
+    color: #8f86ad;
 }
 
 .player-count {
     font-size: 0.8rem;
-    color: #8b93a3;
+    color: #7d7595;
     margin: 0;
     position: absolute;
     bottom: 16px;
@@ -55,16 +80,16 @@ canvas {
 
 .m-title {
     font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.25rem;
+    font-weight: 700;
+    letter-spacing: 0.28rem;
     text-transform: uppercase;
-    color: #9aa2b1;
+    color: #a99ed6;
     margin-top: 14px;
 }
 
 .armor-div, .gun-div, .power-div {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: rgba(139, 92, 246, 0.055);
+    border: 1px solid rgba(139, 92, 246, 0.18);
     border-radius: 14px;
     padding: 12px;
     margin: 12px;
@@ -118,6 +143,7 @@ canvas {
 
 .gun:hover {
     transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
 }
 
 .name-div {
@@ -127,10 +153,6 @@ canvas {
     align-items: center;
     flex-direction: column;
     margin-top: 6px;
-}
-
-.title-accent {
-    color: #4fc3f7;
 }
 
 .username-form {
@@ -145,41 +167,44 @@ canvas {
     width: 275px;
     height: 44px;
     padding: 0 14px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(167, 139, 250, 0.28);
     border-radius: 10px;
     outline: none;
     font-size: 1.1rem;
     font-family: inherit;
-    background: #1a1d22;
+    background: #1a1724;
     color: #ffffff;
     text-align: center;
-    transition: border-color 0.15s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
     z-index: 29085;
 }
 
 .username-input:focus {
-    border-color: #4fc3f7;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.22);
 }
 
 .play-button {
     width: 275px;
-    height: 44px;
+    height: 46px;
     padding: 0 26px;
     border: none;
     border-radius: 10px;
-    background: #4fc3f7;
-    color: #0d1117;
+    background: linear-gradient(180deg, #9a6bff 0%, #7c4dff 100%);
+    color: #ffffff;
     font-family: inherit;
     font-weight: 700;
     font-size: 1rem;
-    letter-spacing: 0.1rem;
+    letter-spacing: 0.14rem;
     cursor: pointer;
-    transition: filter 0.15s ease, transform 0.1s ease;
+    box-shadow: 0 6px 22px rgba(139, 92, 246, 0.45);
+    transition: filter 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 
 .play-button:hover {
-    filter: brightness(1.12);
+    filter: brightness(1.1);
     transform: translateY(-1px);
+    box-shadow: 0 8px 28px rgba(139, 92, 246, 0.6);
 }
 
 .chat-div {
@@ -197,12 +222,12 @@ canvas {
     width: 275px;
     height: 40px;
     padding: 0 14px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(167, 139, 250, 0.25);
     border-radius: 10px;
     outline: none;
     font-size: 1.1rem;
     font-family: inherit;
-    background: rgba(20, 22, 27, 0.92);
+    background: rgba(18, 16, 26, 0.92);
     color: #ffffff;
     position: relative;
     top: 100px;
@@ -214,8 +239,8 @@ canvas {
 
 .a-select {
     width: 250px;
-    border-color: #ffffff;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+    border-color: #a78bfa;
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.35), 0 6px 18px rgba(0, 0, 0, 0.45);
 }
 
 .smol {
