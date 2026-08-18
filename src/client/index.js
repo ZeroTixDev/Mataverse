@@ -1195,6 +1195,28 @@ async function handleMessage(event, lag = true) {
             // fakeBullets.splice(delIndex, 1);
             // fake bullets should always be right xD
             bullets[data.newBullet.id] = new Bullet(data.newBullet, rrt / 2);
+			// the shooter renders at an interpolated position behind their server position,
+			// so young bullets are drawn flying out of the rendered barrel and blended
+			// onto their true server path within 150ms
+			const nb = bullets[data.newBullet.id];
+			const shooter = players[nb.parent];
+			if (shooter != undefined) {
+				const renderedX = nb.parent == selfId ? shooter.isx : shooter.x;
+				const renderedY = nb.parent == selfId ? shooter.isy : shooter.y;
+				const sWeapon = Weapons[shooter.weapon];
+				if (renderedX != undefined && sWeapon != undefined) {
+					const sGunW = sWeapon.gunWidth ?? 6;
+					const sGunH = shooter.r * (sWeapon.gunHeight ?? 2);
+					const sSideA = nb.angle - Math.PI / 2;
+					const mzX = renderedX + Math.cos(sSideA) * (shooter.r - sGunW) + Math.cos(nb.angle) * (sGunH * 1.5);
+					const mzY = renderedY + Math.sin(sSideA) * (shooter.r - sGunW) + Math.sin(nb.angle) * (sGunH * 1.5);
+					if (Math.hypot(mzX - nb.x, mzY - nb.y) < 120) {
+						nb.muzzX = mzX;
+						nb.muzzY = mzY;
+						nb.spawnT = window.performance.now();
+					}
+				}
+			}
         } else {
             // fakeBullets[delIndex].id = data.newBullet.id;
 			bullets[data.newBullet.id] = new Bullet(data.newBullet, rrt / 2, false);
@@ -2000,7 +2022,17 @@ function update(dt) {
 	for (const bulletId of Object.keys(bullets)) {
 		const bullet = bullets[bulletId];
 		if (bullet.trail == undefined) bullet.trail = [];
-		bullet.trail.push({ x: bullet.x, y: bullet.y });
+		let tx = bullet.x;
+		let ty = bullet.y;
+		if (bullet.muzzX != undefined) {
+			const bAge = (window.performance.now() - bullet.spawnT) / 1000;
+			const bk = Math.min(bAge / 0.15, 1);
+			if (bk < 1) {
+				tx = (bullet.muzzX + Math.cos(bullet.angle) * bullet.speed * bAge) * (1 - bk) + tx * bk;
+				ty = (bullet.muzzY + Math.sin(bullet.angle) * bullet.speed * bAge) * (1 - bk) + ty * bk;
+			}
+		}
+		bullet.trail.push({ x: tx, y: ty });
 		if (bullet.trail.length > 20) bullet.trail.shift();
 	}
 	// victory fireworks: rainbow bursts around the view while the banner shows
@@ -2234,8 +2266,19 @@ function run() {
             );
             ctx.fill();
         }
-        let x = offsetX(bullet.x)
-        let y = offsetY(bullet.y)
+		// young bullets fly out of the rendered barrel, blending onto the server path
+		let wx = bullet.x;
+		let wy = bullet.y;
+		if (bullet.muzzX != undefined) {
+			const bAge = (window.performance.now() - bullet.spawnT) / 1000;
+			const bk = Math.min(bAge / 0.15, 1);
+			if (bk < 1) {
+				wx = (bullet.muzzX + Math.cos(bullet.angle) * bullet.speed * bAge) * (1 - bk) + wx * bk;
+				wy = (bullet.muzzY + Math.sin(bullet.angle) * bullet.speed * bAge) * (1 - bk) + wy * bk;
+			}
+		}
+        let x = offsetX(wx)
+        let y = offsetY(wy)
 		// per-weapon rounds: mostly black, shotgun keeps a darker version of its color
 		const bWeapon = players[bullet.parent] != undefined ? players[bullet.parent].weapon : null;
 		let bColor = '#0a0b0e';
