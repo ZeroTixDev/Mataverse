@@ -2088,8 +2088,8 @@ function run() {
 	stormGrad.addColorStop(1, 'rgba(120, 10, 16, 0.05)');
 	ctx.fillStyle = stormGrad;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
-	// arena floor, tinted by the round's theme hue
-	ctx.fillStyle = `hsl(${themeHue}, 13%, 15%)`
+	// arena floor: dark but vividly tinted by the round's random hue
+	ctx.fillStyle = `hsl(${themeHue}, 32%, 14%)`
 	ctx.beginPath();
 	ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2)
 	ctx.fill()
@@ -2116,7 +2116,7 @@ function run() {
 	ctx.beginPath();
 	ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2);
 	ctx.clip();
-	drawTiles(`hsl(${themeHue}, 12%, 35%)`);
+	drawTiles(`hsl(${themeHue}, 35%, 37%)`);
 	ctx.restore();
 
 	 // ability effects and stuff
@@ -2130,8 +2130,8 @@ function run() {
 		ctx.beginPath();
 		ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2);
 		ctx.clip();
-		ctx.fillStyle = `hsl(${themeHue}, 11%, 29%)`;
-		ctx.strokeStyle = `hsl(${themeHue}, 13%, 20%)`;
+		ctx.fillStyle = `hsl(${themeHue}, 28%, 30%)`;
+		ctx.strokeStyle = `hsl(${themeHue}, 32%, 20%)`;
 		for (const { x, y, w, h } of obstacles) {
 			const pos = offset(x, y);
 			ctx.fillRect(pos.x - 1, pos.y - 1, w + 2, h + 2);
@@ -3133,9 +3133,9 @@ function run() {
 		ctx.font = '700 24px Inter, Arial';
 		ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
 		ctx.lineWidth = 5;
-		ctx.strokeText('WAITING FOR ANOTHER PLAYER', canvas.width / 2, canvas.height / 2 - 60);
+		ctx.strokeText('WAITING FOR ANOTHER PLAYER', canvas.width / 2, canvas.height / 2 - 130);
 		ctx.fillStyle = '#c7cdd8';
-		ctx.fillText('WAITING FOR ANOTHER PLAYER', canvas.width / 2, canvas.height / 2 - 60);
+		ctx.fillText('WAITING FOR ANOTHER PLAYER', canvas.width / 2, canvas.height / 2 - 130);
 	}
 	// eliminated (or joined mid-round): low-set spectate readout
 	if (liveRound && me() != undefined && me().eliminated) {
