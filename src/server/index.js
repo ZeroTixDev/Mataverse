@@ -83,6 +83,20 @@ function regenerateObstacles() {
 			size, size
 		));
 	}
+	// second ring of smaller blocks hugging the clear zone (never inside 500px)
+	for (const [sx, sy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+		const size = snap50(randRange(100, 200));
+		let dx = snap50(randRange(350, 600));
+		let dy = snap50(randRange(350, 600));
+		while (dx * dx + dy * dy < 500 * 500) {
+			dy += 50;
+		}
+		obstacles.push(new Obstacle(
+			sx === 0 ? arena.baseR - dx - size : arena.baseR + dx,
+			sy === 0 ? arena.baseR - dy - size : arena.baseR + dy,
+			size, size
+		));
+	}
 	// two short mid walls just outside the clear zone
 	for (let i = 0; i < 2; i++) {
 		const len = snap50(randRange(250, 450));

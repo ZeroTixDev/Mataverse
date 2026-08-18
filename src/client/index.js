@@ -1251,9 +1251,6 @@ function trackKeys(event) {
     // if (event.code === 'KeyK' && event.type === 'keydown') {
     //     fast = !fast;
     // }
-	if (event.code === 'KeyL' && event.type === 'keydown' && !chatOpen()) {
-		extraLag = 0;
-	}
 	if (event.code.startsWith('Digit') && event.type === 'keydown' && !chatOpen()) {
 		if (showPassives) {
 			const passives = Object.keys(Powers).filter(k => Powers[k].type === 'Passive' && !Powers[k].exp);
@@ -1273,9 +1270,6 @@ function trackKeys(event) {
 	}
 	if (event.code === 'Digit2' && event.type === 'keydown' && !chatOpen() && !showActives&&!showPassives && me().activeUpgrade) {
 		showActives = true;
-	}
-	if (event.code === 'KeyK' && event.type === 'keydown' && !chatOpen()) {
-		extraLag += 50;
 	}
     if (event.code === 'KeyG' && event.type === 'keydown' && !chatOpen()) {
         showServer = !showServer;
@@ -1560,9 +1554,12 @@ function update(dt) {
 			}
 	        send(pack);
 			me().lastShot = window.performance.now()
-			// muzzle flash (no camera kick)
-			const muzzleX = me().isx + Math.cos(me().angle) * (me().r + 20);
-			const muzzleY = me().isy + Math.sin(me().angle) * (me().r + 20);
+			// muzzle flash at the actual gun tip (matches the server muzzle formula)
+			const mGunW = Weapons[me().weapon].gunWidth ?? 6;
+			const mGunH = me().r * (Weapons[me().weapon].gunHeight ?? 2);
+			const mSideA = me().angle - Math.PI / 2;
+			const muzzleX = me().isx + Math.cos(mSideA) * (me().r - mGunW) + Math.cos(me().angle) * (mGunH * 1.5);
+			const muzzleY = me().isy + Math.sin(mSideA) * (me().r - mGunW) + Math.sin(me().angle) * (mGunH * 1.5);
 			spawnParticles(muzzleX, muzzleY, '#ffb74d', 5, 320, 0.22, 3, me().angle, 0.6);
 			if (me().weapon === 'Burst') {
 				if (me().burstTally == undefined) {
@@ -2099,27 +2096,24 @@ function run() {
         }
         let x = offsetX(bullet.x)
         let y = offsetY(bullet.y)
-		// per-weapon rounds: pellets, long tracers, stubby SMG fire, etc.
+		// per-weapon rounds: mostly black, shotgun keeps a darker version of its color
 		const bWeapon = players[bullet.parent] != undefined ? players[bullet.parent].weapon : null;
-		let bColor = '#c9a86a';
+		let bColor = '#0a0b0e';
 		let bLenMult = 2.1;
 		let bWidthMult = 1.15;
 		let bShape = 'tracer';
 		if (bWeapon === 'Shotgun') {
 			bShape = 'pellet';
-			bColor = '#d98f5a';
+			bColor = '#a8623a';
 		} else if (bWeapon === 'Rifle') {
 			bLenMult = 3.4;
 			bWidthMult = 0.8;
-			bColor = '#ffe9b0';
 		} else if (bWeapon === 'SMG') {
 			bLenMult = 1.5;
 			bWidthMult = 0.9;
-			bColor = '#d8c9a2';
 		} else if (bWeapon === 'Burst') {
 			bLenMult = 2.5;
 			bWidthMult = 1.0;
-			bColor = '#ffc46b';
 		}
 		if (bullet.magz) {
 			bColor = '#3d5afe';
@@ -2172,9 +2166,9 @@ function run() {
 			ctx.moveTo(x - bCos * bLen / 2, y - bSin * bLen / 2);
 			ctx.lineTo(x + bCos * bLen / 2, y + bSin * bLen / 2);
 			ctx.stroke();
-			ctx.fillStyle = 'rgba(255, 245, 210, 0.9)';
+			ctx.fillStyle = '#ffffff';
 			ctx.beginPath();
-			ctx.arc(x + bCos * bLen / 2, y + bSin * bLen / 2, Math.max(bullet.r * 0.45, 1.2), 0, Math.PI * 2);
+			ctx.arc(x + bCos * bLen / 2, y + bSin * bLen / 2, Math.max(bullet.r * 0.5, 1.4), 0, Math.PI * 2);
 			ctx.fill();
 			ctx.lineCap = 'butt';
 		}
@@ -2360,7 +2354,7 @@ function run() {
 		}
 		// crown above the current leader
 		if (topPlayers()[0].id == playerId && Object.keys(players).length > 1) {
-			const crownY = y - player.r - 20;
+			const crownY = y - player.r - 40;
 			ctx.lineJoin = 'round';
 			ctx.beginPath();
 			ctx.moveTo(x - 15, crownY + 8);
@@ -2499,7 +2493,7 @@ function run() {
 					ctx.strokeStyle = Powers['Bended Barrel'].color;
 					let c = ctx.fillStyle;
 					ctx.fillStyle = Powers['Bended Barrel'].color;
-					ctx.fillRect(x - width/2 - 5, y + player.r + 18 - 10, width + 10, 20);
+					ctx.fillRect(x - width/2 - 5, y - player.r - 16 - 10, width + 10, 20);
 					ctx.fillStyle = c;
 					ctx.lineWidth = 4;
 					const meX = offsetX(me().isx);
@@ -2512,12 +2506,12 @@ function run() {
 					// ctx.stroke()
 				}
 			}
-			// clean name below the player: soft shadow instead of a hard outline
+			// clean name above the player: soft shadow instead of a hard outline
 			ctx.font = '600 15px Inter, Arial';
 			ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
 			ctx.shadowBlur = 5;
 			ctx.fillStyle = 'white';
-			ctx.fillText(player.name, x, y + player.r + 18);
+			ctx.fillText(player.name, x, y - player.r - 16);
 			ctx.shadowBlur = 0;
 		}
 	
@@ -2777,10 +2771,10 @@ function run() {
 	        ctx.textAlign = 'center';
 	        ctx.textBaseline = 'middle';
 			const width = ctx.measureText(player.chatMessage).width;
-			ctx.fillRect(x - width/2 - 10, y - player.r - 50, width + 20, 30);
+			ctx.fillRect(x - width/2 - 10, y - player.r - 85, width + 20, 30);
 			ctx.globalAlpha = 1;
 			ctx.fillStyle = 'white';
-			ctx.fillText(player.chatMessage, x, y - player.r - 35);
+			ctx.fillText(player.chatMessage, x, y - player.r - 70);
 			ctx.globalAlpha = 1;
 		} else if (player.typing) {
 			ctx.globalAlpha = 0.9;
@@ -2789,10 +2783,10 @@ function run() {
 	        ctx.textAlign = 'center';
 	        ctx.textBaseline = 'middle';
 			const width = ctx.measureText('...').width;
-			ctx.fillRect(x - width/2 - 10, y - player.r - 50, width + 20, 30);
+			ctx.fillRect(x - width/2 - 10, y - player.r - 85, width + 20, 30);
 			ctx.globalAlpha = 1;
 			ctx.fillStyle = 'white';
-			ctx.fillText('...', x, y - player.r - 35);
+			ctx.fillText('...', x, y - player.r - 70);
 		}
         // }
     }
@@ -3150,16 +3144,7 @@ function playerUI() {
 
 	const barX = canvas.width / 2 - 175;
 	const barW = 350;
-	const barText = (text, tx, ty, align) => {
-		ctx.textAlign = align;
-		ctx.lineJoin = 'round';
-		ctx.strokeStyle = 'rgba(10, 12, 16, 0.85)';
-		ctx.lineWidth = 3;
-		ctx.strokeText(text, tx, ty);
-		ctx.fillStyle = '#ffffff';
-		ctx.fillText(text, tx, ty);
-	};
-	// health is the hero bar: thick, gradient, quarter notches, number inside
+	// health is the hero bar: thick, gradient, number inside
 	const hpFrac = Math.max(Math.min(player.hp / 100, 1), 0);
 	ctx.fillStyle = '#171a20';
 	fillRoundRect(barX, canvas.height - 52, barW, 22, 6);
@@ -3168,26 +3153,23 @@ function playerUI() {
 		hg.addColorStop(0, hpFrac > 0.3 ? '#65e89c' : '#ff7b7b');
 		hg.addColorStop(1, hpFrac > 0.3 ? '#1fae57' : '#d61f36');
 		ctx.fillStyle = hg;
-		fillRoundRect(barX + 2, canvas.height - 50, Math.max((barW - 4) * hpFrac, 12), 18, 4);
+		fillRoundRect(barX, canvas.height - 52, Math.max(barW * hpFrac, 14), 22, 6);
 	}
-	ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-	for (let n = 1; n <= 3; n++) {
-		ctx.fillRect(barX + (barW / 4) * n, canvas.height - 50, 2, 18);
-	}
-	// energy is a slim strip beneath it
+	// energy is a slim gold strip beneath it
 	const denied = me().denied || me().denying;
 	const sprintFrac = Math.max(Math.min(player.cshift / player.shiftLength, 1), 0);
 	ctx.fillStyle = '#171a20';
-	fillRoundRect(barX, canvas.height - 24, barW, 9, 4.5);
+	fillRoundRect(barX, canvas.height - 26, barW, 13, 6);
 	if (sprintFrac > 0.01) {
-		ctx.fillStyle = denied ? '#ff8c2e' : '#9a6bff';
-		fillRoundRect(barX + 1.5, canvas.height - 22.5, Math.max((barW - 3) * sprintFrac, 8), 6, 3);
+		ctx.fillStyle = denied ? '#ff6b3d' : '#ffc42e';
+		fillRoundRect(barX, canvas.height - 26, Math.max(barW * sprintFrac, 12), 13, 6);
 	}
+	// big health readout centered above the panel: green fading to red as it drops
 	ctx.textBaseline = 'middle';
-	ctx.font = '700 13px Inter, Arial';
-	barText(`${Math.round(player.hp)}`, barX + 10, canvas.height - 41, 'left');
-	ctx.font = '700 10px Inter, Arial';
-	barText(`${Math.round(sprintFrac * 100)}%`, barX + barW - 8, canvas.height - 19.5, 'right');
+	ctx.textAlign = 'center';
+	ctx.font = '700 32px Inter, Arial';
+	ctx.fillStyle = `hsl(${Math.round(hpFrac * 130)}, 75%, 55%)`;
+	ctx.fillText(`${Math.round(player.hp)}`, canvas.width / 2, canvas.height - 82);
 	ctx.textAlign = 'left';
 	// ctx.globalAlpha = 0.75
 	// ctx.fillStyle = 'black';
