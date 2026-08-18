@@ -1251,9 +1251,6 @@ function trackKeys(event) {
     // if (event.code === 'KeyK' && event.type === 'keydown') {
     //     fast = !fast;
     // }
-	if (event.code === 'KeyL' && event.type === 'keydown' && !chatOpen()) {
-		extraLag = 0;
-	}
 	if (event.code.startsWith('Digit') && event.type === 'keydown' && !chatOpen()) {
 		if (showPassives) {
 			const passives = Object.keys(Powers).filter(k => Powers[k].type === 'Passive' && !Powers[k].exp);
@@ -1273,9 +1270,6 @@ function trackKeys(event) {
 	}
 	if (event.code === 'Digit2' && event.type === 'keydown' && !chatOpen() && !showActives&&!showPassives && me().activeUpgrade) {
 		showActives = true;
-	}
-	if (event.code === 'KeyK' && event.type === 'keydown' && !chatOpen()) {
-		extraLag += 50;
 	}
     if (event.code === 'KeyG' && event.type === 'keydown' && !chatOpen()) {
         showServer = !showServer;
@@ -3170,15 +3164,13 @@ function playerUI() {
 		ctx.fillStyle = denied ? '#ff6b3d' : '#ffc42e';
 		fillRoundRect(barX + 2, canvas.height - 24, Math.max((barW - 4) * sprintFrac, 10), 9, 4);
 	}
-	// uniform left-aligned Inter numbers - no outlines, no percent signs
+	// big health readout centered above the panel: green fading to red as it drops
 	ctx.textBaseline = 'middle';
+	ctx.textAlign = 'center';
+	ctx.font = '700 28px Inter, Arial';
+	ctx.fillStyle = `hsl(${Math.round(hpFrac * 130)}, 75%, 55%)`;
+	ctx.fillText(`${Math.round(player.hp)}`, canvas.width / 2, canvas.height - 82);
 	ctx.textAlign = 'left';
-	ctx.font = '700 15px Inter, Arial';
-	ctx.fillStyle = '#ffffff';
-	ctx.fillText(`${Math.round(player.hp)}`, barX + 12, canvas.height - 41);
-	ctx.font = '700 11px Inter, Arial';
-	ctx.fillStyle = sprintFrac > 0.08 ? '#1a1c22' : '#ffffff';
-	ctx.fillText(`${Math.round(sprintFrac * 100)}`, barX + 12, canvas.height - 19.5);
 	// ctx.globalAlpha = 0.75
 	// ctx.fillStyle = 'black';
 	// // ctx.globalAlpha = 0.4;
