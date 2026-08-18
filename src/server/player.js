@@ -46,7 +46,7 @@ module.exports = class Player {
 		this.weapon = weapon;
 		// burst only
 		this.burstTally = 2; // (because its module 3)
-        this.speed = 12//24//34//22//30//75; //55;
+        this.speed = 9//12//24//34//22//30//75; //55;
         this.input = { up: false, right: false, down: false, left: false, shift: false };
         this.changed = false;
 		this.totalDamage = 0;
@@ -66,7 +66,10 @@ module.exports = class Player {
                   Math.floor(Math.random() * 10);
         this.armor = armor * 50;
         this.maxArmor = this.armor;
-        this.health = 100;
+        this.health = 200;
+		this.maxHealth = 200;
+		this.eliminated = false; // battle royale: out for the rest of the round
+		this.killedBy = null; // who eliminated us (spectate chain)
         this.timer = 0;
         this.currentTick = 0;
         this.deltaTick = 1 / global.tickRate;
@@ -402,7 +405,7 @@ module.exports = class Player {
 		this.y = cx + Math.sin(angle) * (strength - this.r)
         // this.x = this.r + Math.random() * (this._arena.w - this.r * 2);
         // this.y = this.r + Math.random() * (this._arena.h - this.r * 2);
-        this.health = 100;
+        this.health = this.maxHealth;
         this.armor = this.maxArmor;
 		this.respawnUnprocessed = true;
 		// this.currentShift = this.shiftLength;
@@ -608,6 +611,12 @@ module.exports = class Player {
         this.health = Math.max(this.health, 0);
     }
     simulate(dt, players, obstacles) {
+		if (this.eliminated) {
+			// spectating until the next round
+			this.inStorm = false;
+			this.inputQueue.length = 0;
+			return;
+		}
         // let oldX = this.x;
         // let oldY = this.y;
 		// this.r += 1;
@@ -738,10 +747,10 @@ module.exports = class Player {
         let h = this.health;
         let a = this.armor;
 		if (this.regenTimer > this.regenTime) {
-	        if (this.health < 100) {
+	        if (this.health < this.maxHealth) {
 	            this.health += dt * 8;
 	        }
-	        this.health = Math.min(this.health, 100);
+	        this.health = Math.min(this.health, this.maxHealth);
 	        if (this.armor < this.maxArmor) {
 	            this.armor += dt * 8;
 	        }
@@ -768,8 +777,13 @@ module.exports = class Player {
 			this.inStorm = true;
 		}
 		if (this.health <= 0) {
-			// dead
-			this.respawn();
+			// dead (storm): eliminated during a live round, respawn in warmup
+			if (typeof global.gamePhase === 'function' && global.gamePhase() === 'live') {
+				this.killedBy = null; // the storm got them - spectate falls back to the king
+				this.eliminated = true;
+			} else {
+				this.respawn();
+			}
 			this.dataChange = true;
 		}
         if (Math.abs(this.health - h) > 0 || Math.abs(this.armor - a) > 0) {
@@ -867,6 +881,8 @@ module.exports = class Player {
 			activeUpgrade: this.activeUpgrade,
 			preSkating: this.preSkating,
 			skating: this.skating,
+			eliminated: this.eliminated,
+			killedBy: this.killedBy,
 
 			
 			// lastSentInput: this.lastSentInput,

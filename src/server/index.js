@@ -13,10 +13,14 @@ global.sendRate = 120;
 // global.gameSpeed = 0.5;
 let timer = 0;
 let globalTick = 0;
-const arena = { r: 2000, baseR: 2000, minR: 500 };
-// round/storm cycle: arena shrinks over ROUND_TIME, then winner + reset
-const ROUND_TIME = 180;
-let roundTimer = ROUND_TIME;
+const arena = { r: 2000, baseR: 2000, minR: 300 };
+// battle royale: 1-minute rounds (with overtime up to 2:00), 10s intermissions.
+// 'lobby' = fewer than 2 players; joiners play freely and no round runs.
+const INTERMISSION_TIME = 10;
+let phase = 'lobby'; // 'lobby' | 'intermission' | 'live'
+let phaseTimer = 0;
+let roundStarters = 0;
+global.gamePhase = () => phase;
 global.getBullets = () => bullets;
 let perfAmount = 0;
 // const obstacles = [
@@ -120,6 +124,43 @@ function regenerateObstacles() {
 	obstacles.push(new Obstacle(S - snap50(randRange(350, 500)) - eastLen, arena.baseR - 50, eastLen, 100));
 }
 regenerateObstacles();
+
+function endRound(victor) {
+	phase = 'intermission';
+	phaseTimer = INTERMISSION_TIME;
+	const roundEnd = {
+		name: victor != null ? victor.name : null,
+		kills: victor != null ? victor.kills : 0,
+		dmg: victor != null ? Math.round(victor.totalDamage) : 0,
+	};
+	arena.r = arena.baseR;
+	roundHue = Math.floor(Math.random() * 360);
+	regenerateObstacles();
+	for (const id of Object.keys(clients)) {
+		if (clients[id].menu) continue;
+		send(id, { roundEnd });
+		send(id, { obstacles: packObstacles() });
+	}
+}
+
+function startRound() {
+	phase = 'live';
+	phaseTimer = 0;
+	for (const p of Object.values(players)) {
+		// respawn with nothing: fresh health, no kills, no powers
+		p.eliminated = false;
+		p.killedBy = null;
+		p.kills = 0;
+		p.totalDamage = 0;
+		p.armor = p.maxArmor;
+		p.powers = [];
+		p.passiveUpgrade = true;
+		p.activeUpgrade = true;
+		p.respawn();
+		p.dataChange = true;
+	}
+	roundStarters = Object.keys(players).length;
+}
 // const obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":600,"y":1200,"width":200,"height":200,"type":"obstacle"},{"x":0,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":600,"y":0,"width":200,"height":200,"type":"obstacle"},{"x":1200,"y":600,"width":200,"height":200,"type":"obstacle"},{"x":650,"y":650,"width":100,"height":100,"type":"obstacle"}],"blocks":[],"arena":{"width":1400,"height":1400}}')
 
 // let obstacles = darrowsToMata('{"players":{},"arrows":{},"obstacles":[{"x":1150,"y":750,"width":100,"height":100,"type":"obstacle"},{"x":1050,"y":850,"width":100,"height":100,"type":"obstacle"},{"x":400,"y":550,"width":50,"height":100,"type":"obstacle"},{"x":200,"y":920,"width":200,"height":30,"type":"obstacle"},{"x":730,"y":320,"width":250,"height":30,"type":"obstacle"},{"x":900,"y":250,"width":150,"height":70,"type":"obstacle"},{"x":720,"y":1230,"width":50,"height":50,"type":"obstacle"}],"blocks":[],"arena":{"width":1600,"height":1600}}')
@@ -206,6 +247,10 @@ wss.on('connection', (socket, req) => {
 	                data.armor,
 					data.weapon,
 	            );
+				if (phase === 'live') {
+					// BR: mid-round joiners spectate until the next intermission
+					players[clientId].eliminated = true;
+				}
 	            send(clientId, {
 	                selfId: clientId,
 	                players: packPlayers(),
@@ -486,6 +531,19 @@ wss.on('connection', (socket, req) => {
 							370,
 							1.3,
 						)
+					} else if (players[clientId].weapon === 'Energy') {
+						bullets[bId] = new Bullet(
+							bId,
+							data.cx,
+							data.cy,
+							6,
+							players[clientId].angle,
+							clientId,
+							data.approxPing,
+							data.uid,
+							430,
+							0.9,
+						)
 					}
 					players[clientId].angle = ogAngle;
 					if (bullets[bId] != undefined) {
@@ -581,42 +639,39 @@ function ServerTick() {
     const dt = (Date.now() - lastTime) / 1000;
     lastTime = Date.now();
 
-	// storm round: shrink to minR, hold there for the final 30s, then crown + reset
-	roundTimer -= dt;
-	const shrinkTime = ROUND_TIME - 30;
-	const roundProgress = Math.min(1, Math.max(ROUND_TIME - roundTimer, 0) / shrinkTime);
-	arena.r = arena.baseR - (arena.baseR - arena.minR) * roundProgress;
-	if (roundTimer <= 0) {
-		let winner = null;
-		for (const p of Object.values(players)) {
-			if (winner == null || p.kills > winner.kills) {
-				winner = p;
-			}
+	// battle royale cycle
+	if (phase === 'live') {
+		phaseTimer += dt;
+		const t = phaseTimer;
+		if (t < 50) {
+			// close in on the 300px final circle by 0:50
+			arena.r = arena.baseR - (arena.baseR - arena.minR) * (t / 50);
+		} else if (t < 60) {
+			arena.r = arena.minR;
+		} else {
+			// overtime: the final circle slowly shrinks to nothing by 2:00
+			arena.r = Math.max(arena.minR * (1 - (t - 60) / 60), 0);
 		}
-		const roundEnd = {
-			name: winner != null && winner.kills > 0 ? winner.name : null,
-			kills: winner != null ? winner.kills : 0,
-			dmg: winner != null ? Math.round(winner.totalDamage) : 0,
-		};
-		for (const id of Object.keys(clients)) {
-			if (clients[id].menu) continue;
-			send(id, { roundEnd });
+		const alive = Object.values(players).filter((p) => !p.eliminated);
+		if ((roundStarters >= 2 && alive.length <= 1) || t >= 120 || Object.keys(players).length === 0) {
+			endRound(alive.length === 1 ? alive[0] : null);
 		}
-		for (const p of Object.values(players)) {
-			p.kills = 0;
-			p.totalDamage = 0;
-			p.health = 100;
-			p.armor = p.maxArmor;
-			p.dataChange = true;
-		}
-		roundTimer = ROUND_TIME;
+	} else if (phase === 'intermission') {
+		phaseTimer -= dt;
 		arena.r = arena.baseR;
-		// fresh look every round: new tint and a reshuffled (grid-aligned) layout
-		roundHue = Math.floor(Math.random() * 360);
-		regenerateObstacles();
-		for (const id of Object.keys(clients)) {
-			if (clients[id].menu) continue;
-			send(id, { obstacles: packObstacles() });
+		if (Object.keys(players).length < 2) {
+			// lost the second player: back to the open lobby
+			phase = 'lobby';
+			phaseTimer = 0;
+		} else if (phaseTimer <= 0) {
+			startRound();
+		}
+	} else {
+		// lobby: free play, no round; a second player kicks off the countdown
+		arena.r = arena.baseR;
+		if (Object.keys(players).length >= 2) {
+			phase = 'intermission';
+			phaseTimer = INTERMISSION_TIME;
 		}
 	}
 
@@ -856,6 +911,7 @@ function ServerTick() {
         for (const pK of Object.keys(players)) {
             const player = players[pK];
             if (pK == bullet.parent) continue;
+			if (player.eliminated) continue;
             if (bullet.toDelete) continue;
 			// const playerData = player.getRelativeTickState(-bullet.ping*2)
 			// if (playerData == undefined) continue;
@@ -908,6 +964,8 @@ function ServerTick() {
 					// damage = Math.round(3 + 3 * (1-(bullet.lifeTimer/bullet.life)));
 				} else if (players[bullet.fromParent].weapon === 'LMG') {
 					damage = Math.round(8 + 4 * (1-(bullet.lifeTimer/bullet.life)));
+				} else if (players[bullet.fromParent].weapon === 'Energy') {
+					damage = 12;
 				}
 				let mult = 1;
 				if (bullet.magz || bullet.rev) {
@@ -947,11 +1005,18 @@ function ServerTick() {
 					send(bullet.parent, {
 						killed: player.name,
 					});
-                    player.respawn();
+					if (phase === 'live') {
+						// battle royale: eliminated for the rest of the round;
+						// remember the killer so the victim can spectate them
+						player.killedBy = bullet.parent;
+						player.eliminated = true;
+					} else {
+						player.respawn();
+					}
                     if (players[bullet.parent] != undefined) {
                         players[bullet.parent].kills++;
                         players[bullet.parent].dataChange = true;
-						players[bullet.parent].health = 100;
+						players[bullet.parent].health = players[bullet.parent].maxHealth;
 						players[bullet.parent].armor = players[bullet.parent].maxArmor;
                         player.dataChange = true;
                     }
@@ -1007,7 +1072,12 @@ function ServerTick() {
         delete bullets[id];
     }
     // if (changePack.length > 0) {
-		const round = { t: Math.round(Math.max(roundTimer, 0) * 10) / 10, r: Math.round(arena.r), hue: roundHue };
+		const round = {
+			phase: phase === 'live' ? 1 : (phase === 'intermission' ? 0 : 2),
+			t: Math.round(Math.max(phaseTimer, 0) * 10) / 10,
+			r: Math.round(arena.r),
+			hue: roundHue,
+		};
         for (const clientId of Object.keys(clients)) {
             send(clientId, { changePack,  bulletPack, round });
         }

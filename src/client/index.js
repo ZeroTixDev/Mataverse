@@ -32,8 +32,10 @@ let cameraAngle = 0;
 const bullets = {};
 let state = 'menu';
 
-// storm round state (synced from server)
-let roundTime = 180;
+// battle royale round state (synced from server)
+let roundTime = 0;
+let roundPhase = 0; // 1 = live, 0 = intermission
+let wasAliveThisRound = false; // distinguishes killed players from mid-round spectators
 let themeHue = 222; // per-round arena tint, synced from server
 let targetArenaR = null;
 let winnerTimer = 0;
@@ -282,6 +284,21 @@ function gunRects(weapon, bx, by, w, L) {
 			{ x: bx, y: by, w: w, h: L * 0.62, c: METAL },
 			{ x: bx + w * 0.1, y: by + L * 0.32, w: w * 0.8, h: L * 0.1, c: DARK },
 			{ x: cxm - w * 0.13, y: by + L * 0.58, w: w * 0.26, h: L * 0.42, c: DARK },
+		];
+	} else if (weapon === 'LMG') {
+		// heavy receiver, side box magazine, thick barrel, wide muzzle
+		return [
+			{ x: bx, y: by, w: w, h: L * 0.45, c: METAL },
+			{ x: bx - w * 0.36, y: by + L * 0.06, w: w * 0.42, h: L * 0.32, c: DARK },
+			{ x: cxm - w * 0.22, y: by + L * 0.4, w: w * 0.44, h: L * 0.6, c: DARK },
+			{ x: cxm - w * 0.34, y: by + L * 0.9, w: w * 0.68, h: L * 0.1, c: METAL },
+		];
+	} else if (weapon === 'Energy') {
+		// sci-fi housing with a glowing violet core down the middle
+		return [
+			{ x: bx, y: by, w: w, h: L * 0.5, c: METAL },
+			{ x: cxm - w * 0.3, y: by + L * 0.45, w: w * 0.6, h: L * 0.55, c: DARK },
+			{ x: cxm - w * 0.12, y: by + L * 0.2, w: w * 0.24, h: L * 0.72, c: '#8e5bff' },
 		];
 	}
 	return [{ x: bx, y: by, w: w, h: L, c: METAL }];
@@ -555,8 +572,30 @@ function equalState(state1, state2) {
     );
 }
 
+// red X marks left where players fell this round
+let deathMarks = [];
+
+// who the camera should follow: yourself while alive; when eliminated, the
+// player who killed you - following the chain of killers - else the king
+function spectateTarget() {
+	if (players[selfId] == undefined) return undefined;
+	if (!me().eliminated) return me();
+	let spec = players[me().killedBy];
+	let guard = 0;
+	while (spec != undefined && spec.eliminated && guard++ < 12) {
+		spec = players[spec.killedBy];
+	}
+	if (spec == undefined || spec.eliminated) {
+		spec = topPlayers()[0];
+	}
+	return spec ?? me();
+}
+
 function topPlayers() {
-	return Object.keys(players).sort((a, b) => players[b].kills - players[a].kills).map((id) => players[id]);
+	return Object.keys(players)
+		.filter((id) => !players[id].eliminated)
+		.sort((a, b) => players[b].kills - players[a].kills)
+		.map((id) => players[id]);
 }
 
 window.serverGlobalTick = 0;
@@ -716,7 +755,6 @@ async function handleMessage(event, lag = true) {
 		const sortedWeapons = Object.keys(Weapons);
 		let lastGun = localStorage.getItem('lastGun') ?? 'Rifle';
 		for (const weaponName of sortedWeapons) {
-			if (weaponName == 'LMG') continue;
 			gunDiv.innerHTML += `
    				 <span class="gun ${weaponName === lastGun ? 'a-select': ''}" data-type="${weaponName}" style="background: ${Weapons[weaponName].color}; color: white;">${weaponName[0]}<span class="smol">${weaponName.slice(1)}</span></span>
 			`;
@@ -757,14 +795,15 @@ async function handleMessage(event, lag = true) {
 		spawnParticles(data.hitX, data.hitY, '#ffd54f', 10, 260, 0.45, 4);
 		spawnParticles(data.hitX, data.hitY, '#ff7043', 6, 180, 0.5, 3);
 		spawnRing(data.hitX, data.hitY, '255, 213, 79', 46);
-		addShake(4, 0.12);
+		// shake scales with damage, so rapid-fire weapons (SMG/LMG) barely rattle
+		addShake(Math.min(0.8 + data.hitDamage * 0.03, 2.2), 0.1);
     }
 	
 	if (data.killed != undefined) {
 		kTimer = 3;
 		kName = data.killed;
 		kAdj = kArr[Math.floor(Math.random() * kArr.length)]
-		addShake(7, 0.2);
+		addShake(4, 0.15);
 	}
     if (data.selfId != undefined) {
         selfId = data.selfId;
@@ -776,6 +815,9 @@ async function handleMessage(event, lag = true) {
     }
 	if (data.round != undefined) {
 		roundTime = data.round.t;
+		if (data.round.phase != undefined) {
+			roundPhase = data.round.phase;
+		}
 		if (arena != null) {
 			targetArenaR = data.round.r;
 		}
@@ -788,11 +830,11 @@ async function handleMessage(event, lag = true) {
 		winnerName = data.roundEnd.name;
 		winnerKills = data.roundEnd.kills;
 		winnerDmg = data.roundEnd.dmg ?? 0;
-		addShake(6, 0.2);
+		addShake(3, 0.15);
 		if (winnerName != null) {
-			addChatLine(null, `👑 ${winnerName} won the round — ${winnerKills} kill${winnerKills === 1 ? '' : 's'}, ${winnerDmg} damage`, true);
+			addChatLine(null, `👑 ${winnerName} is the last one standing — ${winnerKills} kill${winnerKills === 1 ? '' : 's'}, ${winnerDmg} damage`, true);
 		} else {
-			addChatLine(null, 'Round over — no kills. Fresh round starting!', true);
+			addChatLine(null, 'No survivors this round. Next drop soon!', true);
 		}
 	}
 	if (data.chat != undefined) {
@@ -812,7 +854,7 @@ async function handleMessage(event, lag = true) {
 		gotHitTimer = 0;
 		gotHitStorm = false;
 		if (!data.storm) {
-			addShake(9, 0.25);
+			addShake(5, 0.18);
 			if (players[selfId]) {
 				spawnParticles(me().x, me().y, '#ef5350', 14, 280, 0.5, 4);
 				spawnParticles(me().x, me().y, '#ffffff', 5, 200, 0.3, 2.5);
@@ -993,6 +1035,7 @@ async function handleMessage(event, lag = true) {
 		updatetimestamp = window.performance.now()/1000;
         for (const pack of data.changePack) {
 			if (players[pack.id] == undefined) continue; // pack can arrive before the player list
+			const wasEliminated = players[pack.id].eliminated === true;
             if (pack.id != selfId) {
                 players[pack.id]?.otherUpdate(pack, data.changeTick);
             }
@@ -1038,6 +1081,19 @@ async function handleMessage(event, lag = true) {
 			if (pack.skating != undefined) {
 				players[pack.id].skating = pack.skating;
 				// console.log(pack.skating)
+			}
+			if (pack.eliminated != undefined) {
+				if (pack.eliminated === true && !wasEliminated && roundPhase === 1) {
+					// freshly fallen: leave a mark where they died
+					deathMarks.push({
+						x: pack.x ?? players[pack.id].serverX ?? players[pack.id].x,
+						y: pack.y ?? players[pack.id].serverY ?? players[pack.id].y,
+					});
+				}
+				players[pack.id].eliminated = pack.eliminated;
+			}
+			if (pack.killedBy !== undefined) {
+				players[pack.id].killedBy = pack.killedBy;
 			}
 			if (pack.currentShift != undefined) {
 				players[pack.id].currentShift = pack.currentShift;
@@ -1447,7 +1503,14 @@ function update(dt) {
 
 	kTimer -= dt;
 	winnerTimer -= dt;
-	roundTime = Math.max(roundTime - dt, 0);
+	if (roundPhase !== 1) {
+		wasAliveThisRound = false;
+		if (deathMarks.length > 0) {
+			deathMarks = [];
+		}
+	} else if (players[selfId] != undefined && !me().eliminated) {
+		wasAliveThisRound = true;
+	}
 	if (arena != null && targetArenaR != null) {
 		arena.r = lerp(arena.r, targetArenaR, dt * 4);
 	}
@@ -1470,6 +1533,13 @@ function update(dt) {
     }
 
 	bulletCooldown = Weapons[me().weapon]?.cooldown;
+	if (me().weapon === 'Energy') {
+		// Energy ramps its fire rate while you keep shooting; stopping resets it
+		if (!mouseDown || me().reloading) {
+			me().energyRamp = 0;
+		}
+		bulletCooldown *= 1 - 0.72 * (me().energyRamp ?? 0);
+	}
 	// ammo and reloadTime impl
 	if (me().ammo == undefined) {
 		me().ammo = Weapons[me().weapon].ammo;
@@ -1554,6 +1624,9 @@ function update(dt) {
 			}
 	        send(pack);
 			me().lastShot = window.performance.now()
+			if (me().weapon === 'Energy') {
+				me().energyRamp = Math.min((me().energyRamp ?? 0) + 0.13, 1);
+			}
 			// muzzle flash at the actual gun tip (matches the server muzzle formula)
 			const mGunW = Weapons[me().weapon].gunWidth ?? 6;
 			const mGunH = me().r * (Weapons[me().weapon].gunHeight ?? 2);
@@ -1927,7 +2000,7 @@ function update(dt) {
 		const bullet = bullets[bulletId];
 		if (bullet.trail == undefined) bullet.trail = [];
 		bullet.trail.push({ x: bullet.x, y: bullet.y });
-		if (bullet.trail.length > 12) bullet.trail.shift();
+		if (bullet.trail.length > 20) bullet.trail.shift();
 	}
 	// storm embers drifting inward from the danger zone
 	if (arena != null && camera.x != null && Math.random() < 0.5) {
@@ -1996,8 +2069,9 @@ function run() {
     me().interpAngle = me().angle;
     // camera.x = (me().x + me().isx)/2;
     // camera.y = (me().y + me().isy)/2;
-	camera.x = me().isx
-	camera.y = me().isy
+	const camTarget = spectateTarget() ?? me();
+	camera.x = camTarget.isx ?? camTarget.x;
+	camera.y = camTarget.isy ?? camTarget.y;
 	ctx.save()
 	ctx.translate(canvas.width / 2, canvas.height / 2);
   	ctx.rotate(cameraAngle);
@@ -2066,6 +2140,25 @@ function run() {
 		}
 		ctx.restore();
 	}
+	// red X marks where players fell this round
+	if (deathMarks.length > 0) {
+		ctx.strokeStyle = '#ff3b30';
+		ctx.lineWidth = 5;
+		ctx.lineCap = 'round';
+		ctx.globalAlpha = 0.35;
+		for (const mark of deathMarks) {
+			const markX = offsetX(mark.x);
+			const markY = offsetY(mark.y);
+			ctx.beginPath();
+			ctx.moveTo(markX - 12, markY - 12);
+			ctx.lineTo(markX + 12, markY + 12);
+			ctx.moveTo(markX + 12, markY - 12);
+			ctx.lineTo(markX - 12, markY + 12);
+			ctx.stroke();
+		}
+		ctx.globalAlpha = 1;
+		ctx.lineCap = 'butt';
+	}
 	for (const playerId of Object.keys(players)) {
 		const player = players[playerId];
 		if (player.powers.includes('Quantum Field')) {
@@ -2114,6 +2207,12 @@ function run() {
 		} else if (bWeapon === 'Burst') {
 			bLenMult = 2.5;
 			bWidthMult = 1.0;
+		} else if (bWeapon === 'LMG') {
+			bLenMult = 2.6;
+			bWidthMult = 1.45;
+		} else if (bWeapon === 'Energy') {
+			bShape = 'pellet';
+			bColor = '#8e5bff';
 		}
 		if (bullet.magz) {
 			bColor = '#3d5afe';
@@ -2166,9 +2265,10 @@ function run() {
 			ctx.moveTo(x - bCos * bLen / 2, y - bSin * bLen / 2);
 			ctx.lineTo(x + bCos * bLen / 2, y + bSin * bLen / 2);
 			ctx.stroke();
-			ctx.fillStyle = '#ffffff';
+			// bright flickering tip
+			ctx.fillStyle = `rgba(255, 255, 255, ${(0.75 + Math.random() * 0.25).toFixed(2)})`;
 			ctx.beginPath();
-			ctx.arc(x + bCos * bLen / 2, y + bSin * bLen / 2, Math.max(bullet.r * 0.5, 1.4), 0, Math.PI * 2);
+			ctx.arc(x + bCos * bLen / 2, y + bSin * bLen / 2, Math.max(bullet.r * (0.45 + Math.random() * 0.2), 1.5), 0, Math.PI * 2);
 			ctx.fill();
 			ctx.lineCap = 'butt';
 		}
@@ -2319,6 +2419,7 @@ function run() {
     for (const playerId of Object.keys(players)) {
         // ctx.globalAlpha = 0.7;
         const player = players[playerId];
+		if (player.eliminated) continue;
 		let x = offsetX(player.x);
         let y = offsetY(player.y);
 		// if (playerId == selfId && (window.performance.now() / 1000) - updatetimestamp > pThreshold) {
@@ -2353,7 +2454,7 @@ function run() {
 			outlineColor = '#ff1744';
 		}
 		// crown above the current leader
-		if (topPlayers()[0].id == playerId && Object.keys(players).length > 1) {
+		if (topPlayers()[0]?.id == playerId && Object.keys(players).length > 1) {
 			const crownY = y - player.r - 40;
 			ctx.lineJoin = 'round';
 			ctx.beginPath();
@@ -2389,7 +2490,7 @@ function run() {
         ctx.globalAlpha = bodyAlpha;
 		ctx.fillStyle = bodyColor;
         ctx.beginPath();
-        ctx.arc(x, y, player.r * (player.hp / 100), 0, Math.PI * 2);
+        ctx.arc(x, y, player.r * (player.hp / 200), 0, Math.PI * 2);
         ctx.fill();
 		// colored identity outline, thickened by armor
         ctx.strokeStyle = outlineColor;
@@ -2442,7 +2543,7 @@ function run() {
 			ctx.globalAlpha = 1;
 			ctx.fillStyle = '#0d0e12';
 			ctx.beginPath();
-        	ctx.arc(x, y, player.r * (player.hp / 100), 0, Math.PI * 2);
+        	ctx.arc(x, y, player.r * (player.hp / 200), 0, Math.PI * 2);
 	        ctx.fill();
 			 ctx.strokeStyle = '#f0453a';
        	 	ctx.lineWidth = 2 + (player.armor / 100) * 13; // + armor
@@ -2792,6 +2893,7 @@ function run() {
     }
 	for (const playerId of Object.keys(players)) {
 		const player = players[playerId]
+		if (player.eliminated) continue;
 		let x = offsetX(player.x);
         let y = offsetY(player.y);
 		// if (playerId == selfId && (window.performance.now() / 1000) - updatetimestamp > pThreshold) {
@@ -2873,6 +2975,19 @@ function run() {
  //  	ctx.rotate(-cameraAngle);
  //  	ctx.translate(canvas.width / 2, canvas.height / 2);
 	ctx.restore()
+	// spectating: dim the world and add a vignette so the state is unmistakable
+	if (players[selfId] != undefined && me().eliminated && roundPhase === 1) {
+		ctx.fillStyle = 'rgba(6, 7, 11, 0.28)';
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		const specGrad = ctx.createRadialGradient(
+			canvas.width / 2, canvas.height / 2, canvas.height * 0.3,
+			canvas.width / 2, canvas.height / 2, canvas.height * 0.9
+		);
+		specGrad.addColorStop(0, 'rgba(3, 4, 8, 0)');
+		specGrad.addColorStop(1, 'rgba(3, 4, 8, 0.65)');
+		ctx.fillStyle = specGrad;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+	}
 	// if (topPlayers()[0].id == selfId) {
 	// 	ctx.shadowBlur = 20;
 	// 	ctx.shadowColor = '#ffcc00';
@@ -2895,7 +3010,7 @@ function run() {
         outerRadius
     );
     grd.addColorStop(0, 'rgba(255,0,0,0)');
-    grd.addColorStop(1, 'rgba(255,0,0,' + (0.38 - (me().hp / 100)*0.38) + ')');
+    grd.addColorStop(1, 'rgba(255,0,0,' + (0.38 - (me().hp / 200)*0.38) + ')');
     ctx.fillStyle = grd;
     ctx.fill();
 
@@ -2983,9 +3098,11 @@ function run() {
 	// ctx.strokeRect(canvas.width / 2  - 150, canvas.height - 70, 300, 30);
 	playerUI()
 
-	// round timer, top center: large, minimal, serious
-	const urgent = roundTime <= 10;
-	const rSecs = Math.ceil(roundTime);
+	// round timer, top center: counts up while live; overtime turns red;
+	// intermission shows a gold countdown
+	const liveRound = roundPhase === 1;
+	const overtime = liveRound && roundTime > 60;
+	const rSecs = liveRound ? Math.floor(roundTime) : Math.ceil(roundTime);
 	const tText = `${Math.floor(rSecs / 60)}:${String(rSecs % 60).padStart(2, '0')}`;
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
@@ -2994,13 +3111,49 @@ function run() {
 	ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
 	ctx.lineWidth = 4;
 	ctx.strokeText(tText, canvas.width / 2, 42);
-	if (urgent) {
+	if (overtime) {
 		ctx.shadowColor = '#ff5252';
 		ctx.shadowBlur = 16;
 	}
-	ctx.fillStyle = urgent ? '#ff5252' : '#ffffff';
+	ctx.fillStyle = !liveRound ? '#ffc42e' : (overtime ? '#ff5252' : '#ffffff');
 	ctx.fillText(tText, canvas.width / 2, 42);
 	ctx.shadowBlur = 0;
+
+	// intermission: a real 10s countdown to the drop
+	if (roundPhase === 0) {
+		ctx.font = '700 30px Inter, Arial';
+		ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+		ctx.lineWidth = 5;
+		ctx.strokeText(`NEXT ROUND IN ${Math.ceil(roundTime)}`, canvas.width / 2, canvas.height / 2 - 60);
+		ctx.fillStyle = '#ffc42e';
+		ctx.fillText(`NEXT ROUND IN ${Math.ceil(roundTime)}`, canvas.width / 2, canvas.height / 2 - 60);
+	}
+	// lobby: free play until a second player shows up
+	if (roundPhase === 2) {
+		ctx.font = '700 24px Inter, Arial';
+		ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+		ctx.lineWidth = 5;
+		ctx.strokeText('WAITING FOR ANOTHER PLAYER', canvas.width / 2, canvas.height / 2 - 60);
+		ctx.fillStyle = '#c7cdd8';
+		ctx.fillText('WAITING FOR ANOTHER PLAYER', canvas.width / 2, canvas.height / 2 - 60);
+	}
+	// eliminated (or joined mid-round): low-set spectate readout
+	if (liveRound && me() != undefined && me().eliminated) {
+		const wasKilled = wasAliveThisRound;
+		const specTitle = wasKilled ? 'ELIMINATED' : 'SPECTATING';
+		ctx.font = '700 34px Inter, Arial';
+		ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+		ctx.lineWidth = 5;
+		ctx.strokeText(specTitle, canvas.width / 2, canvas.height - 170);
+		ctx.fillStyle = wasKilled ? '#ff5252' : '#ffc42e';
+		ctx.fillText(specTitle, canvas.width / 2, canvas.height - 170);
+		const specNow = spectateTarget();
+		if (specNow != undefined && specNow.id !== selfId) {
+			ctx.font = '600 15px Inter, Arial';
+			ctx.fillStyle = '#c7cdd8';
+			ctx.fillText(`watching ${specNow.name}`, canvas.width / 2, canvas.height - 142);
+		}
+	}
 
 	// round winner banner
 	if (winnerTimer > 0) {
@@ -3009,7 +3162,7 @@ function run() {
 		ctx.globalAlpha = winnerTimer < 1 ? winnerTimer : 1;
 		ctx.lineJoin = 'round';
 		ctx.font = `700 ${Math.round(44 * wScale)}px Inter, Arial`;
-		const wText = winnerName != null ? `${winnerName} WINS THE ROUND` : 'ROUND OVER';
+		const wText = winnerName != null ? `${winnerName} IS THE LAST ONE STANDING` : 'NO SURVIVORS';
 		ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
 		ctx.lineWidth = 5;
 		ctx.strokeText(wText, canvas.width / 2, canvas.height / 2 - 130);
@@ -3026,6 +3179,7 @@ function run() {
 
 	// leaderboard, top right
 	let playerNames = topPlayers()
+	const aliveCount = playerNames.length;
 	playerNames.length = Math.min(playerNames.length, 5);
 	const playerCount = Object.keys(players).length;
 	const lbW = 240;
@@ -3043,7 +3197,7 @@ function run() {
 	ctx.fillStyle = '#8b93a3';
 	ctx.fillText('LEADERBOARD', lbX + 14, lbY + 20);
 	ctx.textAlign = 'right';
-	ctx.fillText(`${playerCount} online`, lbX + lbW - 14, lbY + 20);
+	ctx.fillText(roundPhase === 1 ? `${aliveCount} alive` : `${playerCount} online`, lbX + lbW - 14, lbY + 20);
 	ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
 	ctx.fillRect(lbX + 10, lbY + 36, lbW - 20, 2);
 	const rankColors = ['#ffcc00', '#c0c8d4', '#cd8d5a'];
@@ -3134,7 +3288,8 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
   }
 function playerUI() {
 	// return;
-	const player = me();
+	// while spectating, the bottom bars show the watched player's stats
+	const player = spectateTarget() ?? me();
 	// bottom HUD panel: near-opaque, high-contrast tracks and brighter fills
 	ctx.fillStyle = 'rgba(13, 15, 19, 0.92)';
 	fillRoundRect(canvas.width / 2 - 230, canvas.height - 64, 460, 64, 12);
@@ -3145,7 +3300,7 @@ function playerUI() {
 	const barX = canvas.width / 2 - 175;
 	const barW = 350;
 	// health is the hero bar: thick, gradient, number inside
-	const hpFrac = Math.max(Math.min(player.hp / 100, 1), 0);
+	const hpFrac = Math.max(Math.min(player.hp / 200, 1), 0);
 	ctx.fillStyle = '#171a20';
 	fillRoundRect(barX, canvas.height - 52, barW, 22, 6);
 	if (hpFrac > 0.01) {
@@ -3156,7 +3311,7 @@ function playerUI() {
 		fillRoundRect(barX, canvas.height - 52, Math.max(barW * hpFrac, 14), 22, 6);
 	}
 	// energy is a slim gold strip beneath it
-	const denied = me().denied || me().denying;
+	const denied = player.denied || player.denying;
 	const sprintFrac = Math.max(Math.min(player.cshift / player.shiftLength, 1), 0);
 	ctx.fillStyle = '#171a20';
 	fillRoundRect(barX, canvas.height - 26, barW, 13, 6);
