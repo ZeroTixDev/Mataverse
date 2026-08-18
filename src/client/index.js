@@ -3153,7 +3153,7 @@ function playerUI() {
 		hg.addColorStop(0, hpFrac > 0.3 ? '#65e89c' : '#ff7b7b');
 		hg.addColorStop(1, hpFrac > 0.3 ? '#1fae57' : '#d61f36');
 		ctx.fillStyle = hg;
-		fillRoundRect(barX + 2, canvas.height - 50, Math.max((barW - 4) * hpFrac, 12), 18, 4);
+		fillRoundRect(barX, canvas.height - 52, Math.max(barW * hpFrac, 14), 22, 6);
 	}
 	// energy is a slim gold strip beneath it
 	const denied = me().denied || me().denying;
@@ -3162,12 +3162,12 @@ function playerUI() {
 	fillRoundRect(barX, canvas.height - 26, barW, 13, 6);
 	if (sprintFrac > 0.01) {
 		ctx.fillStyle = denied ? '#ff6b3d' : '#ffc42e';
-		fillRoundRect(barX + 2, canvas.height - 24, Math.max((barW - 4) * sprintFrac, 10), 9, 4);
+		fillRoundRect(barX, canvas.height - 26, Math.max(barW * sprintFrac, 12), 13, 6);
 	}
 	// big health readout centered above the panel: green fading to red as it drops
 	ctx.textBaseline = 'middle';
 	ctx.textAlign = 'center';
-	ctx.font = '700 28px Inter, Arial';
+	ctx.font = '700 32px Inter, Arial';
 	ctx.fillStyle = `hsl(${Math.round(hpFrac * 130)}, 75%, 55%)`;
 	ctx.fillText(`${Math.round(player.hp)}`, canvas.width / 2, canvas.height - 82);
 	ctx.textAlign = 'left';
