@@ -14,10 +14,11 @@ global.sendRate = 120;
 let timer = 0;
 let globalTick = 0;
 const arena = { r: 2000, baseR: 2000, minR: 300 };
-// battle royale: 1-minute rounds (with overtime up to 2:00), 10s intermissions
+// battle royale: 1-minute rounds (with overtime up to 2:00), 10s intermissions.
+// 'lobby' = fewer than 2 players; joiners play freely and no round runs.
 const INTERMISSION_TIME = 10;
-let phase = 'intermission'; // 'intermission' | 'live'
-let phaseTimer = INTERMISSION_TIME;
+let phase = 'lobby'; // 'lobby' | 'intermission' | 'live'
+let phaseTimer = 0;
 let roundStarters = 0;
 global.gamePhase = () => phase;
 global.getBullets = () => bullets;
@@ -146,10 +147,15 @@ function startRound() {
 	phase = 'live';
 	phaseTimer = 0;
 	for (const p of Object.values(players)) {
+		// respawn with nothing: fresh health, no kills, no powers
 		p.eliminated = false;
+		p.killedBy = null;
 		p.kills = 0;
 		p.totalDamage = 0;
 		p.armor = p.maxArmor;
+		p.powers = [];
+		p.passiveUpgrade = true;
+		p.activeUpgrade = true;
 		p.respawn();
 		p.dataChange = true;
 	}
@@ -242,11 +248,8 @@ wss.on('connection', (socket, req) => {
 					data.weapon,
 	            );
 				if (phase === 'live') {
-					// BR: mid-round joiners spectate the king until the next intermission
+					// BR: mid-round joiners spectate until the next intermission
 					players[clientId].eliminated = true;
-				} else if (Object.keys(players).length === 1) {
-					// first player into an idle lobby gets a full join window
-					phaseTimer = Math.max(phaseTimer, INTERMISSION_TIME);
 				}
 	            send(clientId, {
 	                selfId: clientId,
@@ -653,16 +656,22 @@ function ServerTick() {
 		if ((roundStarters >= 2 && alive.length <= 1) || t >= 120 || Object.keys(players).length === 0) {
 			endRound(alive.length === 1 ? alive[0] : null);
 		}
-	} else {
+	} else if (phase === 'intermission') {
 		phaseTimer -= dt;
 		arena.r = arena.baseR;
-		if (phaseTimer <= 0) {
-			if (Object.keys(players).length > 0) {
-				startRound();
-			} else {
-				// empty server: hold the lobby open until someone shows up
-				phaseTimer = 1;
-			}
+		if (Object.keys(players).length < 2) {
+			// lost the second player: back to the open lobby
+			phase = 'lobby';
+			phaseTimer = 0;
+		} else if (phaseTimer <= 0) {
+			startRound();
+		}
+	} else {
+		// lobby: free play, no round; a second player kicks off the countdown
+		arena.r = arena.baseR;
+		if (Object.keys(players).length >= 2) {
+			phase = 'intermission';
+			phaseTimer = INTERMISSION_TIME;
 		}
 	}
 
@@ -997,7 +1006,9 @@ function ServerTick() {
 						killed: player.name,
 					});
 					if (phase === 'live') {
-						// battle royale: eliminated for the rest of the round
+						// battle royale: eliminated for the rest of the round;
+						// remember the killer so the victim can spectate them
+						player.killedBy = bullet.parent;
 						player.eliminated = true;
 					} else {
 						player.respawn();
@@ -1062,7 +1073,7 @@ function ServerTick() {
     }
     // if (changePack.length > 0) {
 		const round = {
-			phase: phase === 'live' ? 1 : 0,
+			phase: phase === 'live' ? 1 : (phase === 'intermission' ? 0 : 2),
 			t: Math.round(Math.max(phaseTimer, 0) * 10) / 10,
 			r: Math.round(arena.r),
 			hue: roundHue,

@@ -69,6 +69,7 @@ module.exports = class Player {
         this.health = 200;
 		this.maxHealth = 200;
 		this.eliminated = false; // battle royale: out for the rest of the round
+		this.killedBy = null; // who eliminated us (spectate chain)
         this.timer = 0;
         this.currentTick = 0;
         this.deltaTick = 1 / global.tickRate;
@@ -778,6 +779,7 @@ module.exports = class Player {
 		if (this.health <= 0) {
 			// dead (storm): eliminated during a live round, respawn in warmup
 			if (typeof global.gamePhase === 'function' && global.gamePhase() === 'live') {
+				this.killedBy = null; // the storm got them - spectate falls back to the king
 				this.eliminated = true;
 			} else {
 				this.respawn();
@@ -880,6 +882,7 @@ module.exports = class Player {
 			preSkating: this.preSkating,
 			skating: this.skating,
 			eliminated: this.eliminated,
+			killedBy: this.killedBy,
 
 			
 			// lastSentInput: this.lastSentInput,

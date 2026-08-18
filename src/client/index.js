@@ -572,6 +572,25 @@ function equalState(state1, state2) {
     );
 }
 
+// red X marks left where players fell this round
+let deathMarks = [];
+
+// who the camera should follow: yourself while alive; when eliminated, the
+// player who killed you - following the chain of killers - else the king
+function spectateTarget() {
+	if (players[selfId] == undefined) return undefined;
+	if (!me().eliminated) return me();
+	let spec = players[me().killedBy];
+	let guard = 0;
+	while (spec != undefined && spec.eliminated && guard++ < 12) {
+		spec = players[spec.killedBy];
+	}
+	if (spec == undefined || spec.eliminated) {
+		spec = topPlayers()[0];
+	}
+	return spec ?? me();
+}
+
 function topPlayers() {
 	return Object.keys(players)
 		.filter((id) => !players[id].eliminated)
@@ -1016,6 +1035,7 @@ async function handleMessage(event, lag = true) {
 		updatetimestamp = window.performance.now()/1000;
         for (const pack of data.changePack) {
 			if (players[pack.id] == undefined) continue; // pack can arrive before the player list
+			const wasEliminated = players[pack.id].eliminated === true;
             if (pack.id != selfId) {
                 players[pack.id]?.otherUpdate(pack, data.changeTick);
             }
@@ -1063,7 +1083,17 @@ async function handleMessage(event, lag = true) {
 				// console.log(pack.skating)
 			}
 			if (pack.eliminated != undefined) {
+				if (pack.eliminated === true && !wasEliminated && roundPhase === 1) {
+					// freshly fallen: leave a mark where they died
+					deathMarks.push({
+						x: pack.x ?? players[pack.id].serverX ?? players[pack.id].x,
+						y: pack.y ?? players[pack.id].serverY ?? players[pack.id].y,
+					});
+				}
 				players[pack.id].eliminated = pack.eliminated;
+			}
+			if (pack.killedBy !== undefined) {
+				players[pack.id].killedBy = pack.killedBy;
 			}
 			if (pack.currentShift != undefined) {
 				players[pack.id].currentShift = pack.currentShift;
@@ -1473,8 +1503,11 @@ function update(dt) {
 
 	kTimer -= dt;
 	winnerTimer -= dt;
-	if (roundPhase === 0) {
+	if (roundPhase !== 1) {
 		wasAliveThisRound = false;
+		if (deathMarks.length > 0) {
+			deathMarks = [];
+		}
 	} else if (players[selfId] != undefined && !me().eliminated) {
 		wasAliveThisRound = true;
 	}
@@ -2036,14 +2069,7 @@ function run() {
     me().interpAngle = me().angle;
     // camera.x = (me().x + me().isx)/2;
     // camera.y = (me().y + me().isy)/2;
-	let camTarget = me();
-	if (me().eliminated) {
-		// spectate the king (top alive player)
-		const king = topPlayers()[0];
-		if (king != undefined) {
-			camTarget = king;
-		}
-	}
+	const camTarget = spectateTarget() ?? me();
 	camera.x = camTarget.isx ?? camTarget.x;
 	camera.y = camTarget.isy ?? camTarget.y;
 	ctx.save()
@@ -2113,6 +2139,25 @@ function run() {
 			ctx.strokeRect(pos.x + 1.5, pos.y + 1.5, w - 3, h - 3);
 		}
 		ctx.restore();
+	}
+	// red X marks where players fell this round
+	if (deathMarks.length > 0) {
+		ctx.strokeStyle = '#ff3b30';
+		ctx.lineWidth = 5;
+		ctx.lineCap = 'round';
+		ctx.globalAlpha = 0.35;
+		for (const mark of deathMarks) {
+			const markX = offsetX(mark.x);
+			const markY = offsetY(mark.y);
+			ctx.beginPath();
+			ctx.moveTo(markX - 12, markY - 12);
+			ctx.lineTo(markX + 12, markY + 12);
+			ctx.moveTo(markX + 12, markY - 12);
+			ctx.lineTo(markX - 12, markY + 12);
+			ctx.stroke();
+		}
+		ctx.globalAlpha = 1;
+		ctx.lineCap = 'butt';
 	}
 	for (const playerId of Object.keys(players)) {
 		const player = players[playerId];
@@ -2930,6 +2975,19 @@ function run() {
  //  	ctx.rotate(-cameraAngle);
  //  	ctx.translate(canvas.width / 2, canvas.height / 2);
 	ctx.restore()
+	// spectating: dim the world and add a vignette so the state is unmistakable
+	if (players[selfId] != undefined && me().eliminated && roundPhase === 1) {
+		ctx.fillStyle = 'rgba(6, 7, 11, 0.28)';
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		const specGrad = ctx.createRadialGradient(
+			canvas.width / 2, canvas.height / 2, canvas.height * 0.3,
+			canvas.width / 2, canvas.height / 2, canvas.height * 0.9
+		);
+		specGrad.addColorStop(0, 'rgba(3, 4, 8, 0)');
+		specGrad.addColorStop(1, 'rgba(3, 4, 8, 0.65)');
+		ctx.fillStyle = specGrad;
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+	}
 	// if (topPlayers()[0].id == selfId) {
 	// 	ctx.shadowBlur = 20;
 	// 	ctx.shadowColor = '#ffcc00';
@@ -3061,8 +3119,8 @@ function run() {
 	ctx.fillText(tText, canvas.width / 2, 42);
 	ctx.shadowBlur = 0;
 
-	// intermission: the only join window - announce the next drop
-	if (!liveRound) {
+	// intermission: a real 10s countdown to the drop
+	if (roundPhase === 0) {
 		ctx.font = '700 30px Inter, Arial';
 		ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
 		ctx.lineWidth = 5;
@@ -3070,20 +3128,31 @@ function run() {
 		ctx.fillStyle = '#ffc42e';
 		ctx.fillText(`NEXT ROUND IN ${Math.ceil(roundTime)}`, canvas.width / 2, canvas.height / 2 - 60);
 	}
-	// eliminated (or joined mid-round): spectate the king until the next round
+	// lobby: free play until a second player shows up
+	if (roundPhase === 2) {
+		ctx.font = '700 24px Inter, Arial';
+		ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+		ctx.lineWidth = 5;
+		ctx.strokeText('WAITING FOR ANOTHER PLAYER', canvas.width / 2, canvas.height / 2 - 60);
+		ctx.fillStyle = '#c7cdd8';
+		ctx.fillText('WAITING FOR ANOTHER PLAYER', canvas.width / 2, canvas.height / 2 - 60);
+	}
+	// eliminated (or joined mid-round): low-set spectate readout
 	if (liveRound && me() != undefined && me().eliminated) {
 		const wasKilled = wasAliveThisRound;
 		const specTitle = wasKilled ? 'ELIMINATED' : 'SPECTATING';
-		ctx.font = '700 44px Inter, Arial';
+		ctx.font = '700 34px Inter, Arial';
 		ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-		ctx.lineWidth = 6;
-		ctx.strokeText(specTitle, canvas.width / 2, canvas.height / 2 - 70);
+		ctx.lineWidth = 5;
+		ctx.strokeText(specTitle, canvas.width / 2, canvas.height - 170);
 		ctx.fillStyle = wasKilled ? '#ff5252' : '#ffc42e';
-		ctx.fillText(specTitle, canvas.width / 2, canvas.height / 2 - 70);
-		ctx.font = '600 17px Inter, Arial';
-		ctx.fillStyle = '#c7cdd8';
-		const kingName = topPlayers()[0] != undefined ? `watching ${topPlayers()[0].name} — ` : '';
-		ctx.fillText(`${kingName}you drop in next round`, canvas.width / 2, canvas.height / 2 - 32);
+		ctx.fillText(specTitle, canvas.width / 2, canvas.height - 170);
+		const specNow = spectateTarget();
+		if (specNow != undefined && specNow.id !== selfId) {
+			ctx.font = '600 15px Inter, Arial';
+			ctx.fillStyle = '#c7cdd8';
+			ctx.fillText(`watching ${specNow.name}`, canvas.width / 2, canvas.height - 142);
+		}
 	}
 
 	// round winner banner
@@ -3219,7 +3288,8 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
   }
 function playerUI() {
 	// return;
-	const player = me();
+	// while spectating, the bottom bars show the watched player's stats
+	const player = spectateTarget() ?? me();
 	// bottom HUD panel: near-opaque, high-contrast tracks and brighter fills
 	ctx.fillStyle = 'rgba(13, 15, 19, 0.92)';
 	fillRoundRect(canvas.width / 2 - 230, canvas.height - 64, 460, 64, 12);
@@ -3241,7 +3311,7 @@ function playerUI() {
 		fillRoundRect(barX, canvas.height - 52, Math.max(barW * hpFrac, 14), 22, 6);
 	}
 	// energy is a slim gold strip beneath it
-	const denied = me().denied || me().denying;
+	const denied = player.denied || player.denying;
 	const sprintFrac = Math.max(Math.min(player.cshift / player.shiftLength, 1), 0);
 	ctx.fillStyle = '#171a20';
 	fillRoundRect(barX, canvas.height - 26, barW, 13, 6);
