@@ -70,8 +70,10 @@ module.exports = class Bullet {
 		if (this.touchingObstacles(obstacles) && (!throughWall || !this.firstSim)) {
 			this.toDelete = true;
 		}
-		this.x += Math.cos(this.angle) * this.speed * dt;
-        this.y += Math.sin(this.angle) * this.speed * dt;
+		// rounds accelerate while inside a quantum field
+		const fieldBoost = throughWall ? 1.4 : 1;
+		this.x += Math.cos(this.angle) * this.speed * dt * fieldBoost;
+        this.y += Math.sin(this.angle) * this.speed * dt * fieldBoost;
         this.lifeTimer += dt;
 		this.angle += this.curveFactor * dt;
         // if (this.pingSim < this.totalPing && this.firstSim) {

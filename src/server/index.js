@@ -13,7 +13,7 @@ global.sendRate = 120;
 // global.gameSpeed = 0.5;
 let timer = 0;
 let globalTick = 0;
-const arena = { r: 2000, baseR: 2000, minR: 300 };
+const arena = { r: 2000, baseR: 2000, minR: 500 };
 // battle royale: 1-minute rounds (with overtime up to 2:00), 10s intermissions.
 // 'lobby' = fewer than 2 players; joiners play freely and no round runs.
 const INTERMISSION_TIME = 10;
@@ -996,7 +996,7 @@ function ServerTick() {
 				} else if (players[bullet.fromParent].weapon === 'LMG') {
 					damage = Math.round(8 + 4 * (1-(bullet.lifeTimer/bullet.life)));
 				} else if (players[bullet.fromParent].weapon === 'Energy') {
-					damage = 12;
+					damage = 9;
 				}
 				let mult = 1;
 				if (bullet.magz || bullet.rev) {
@@ -1005,6 +1005,10 @@ function ServerTick() {
 				damage *= mult;
 				damage = Math.round(damage)
                 player.takeDamage(damage);
+				// impact knockback along the shot direction, heavier hits shove harder
+				const knock = Math.min(4, 1.2 + damage * 0.03);
+				player.xv += Math.cos(bullet.angle) * knock;
+				player.yv += Math.sin(bullet.angle) * knock;
                 send(bullet.parent, {
                     hitDamage: damage,
                     hitX: bullet.x,

@@ -66,8 +66,8 @@ module.exports = class Player {
                   Math.floor(Math.random() * 10);
         this.armor = armor * 50;
         this.maxArmor = this.armor;
-        this.health = 200;
-		this.maxHealth = 200;
+        this.health = 1000;
+		this.maxHealth = 1000;
 		this.eliminated = false; // battle royale: out for the rest of the round
 		this.killedBy = null; // who eliminated us (spectate chain)
         this.timer = 0;
@@ -748,7 +748,7 @@ module.exports = class Player {
         let a = this.armor;
 		if (this.regenTimer > this.regenTime) {
 	        if (this.health < this.maxHealth) {
-	            this.health += dt * 8;
+	            this.health += dt * 40;
 	        }
 	        this.health = Math.min(this.health, this.maxHealth);
 	        if (this.armor < this.maxArmor) {
@@ -773,7 +773,7 @@ module.exports = class Player {
 		const arenaC = this._arena.baseR ?? this._arena.r;
 		const outOfBounds = !circleCircleContains(arenaC, arenaC, this._arena.r, this.x, this.y, this.r);
 		if (outOfBounds) {
-			this.takeDamage(dt * 15, true)
+			this.takeDamage(dt * 75, true)
 			this.inStorm = true;
 		}
 		if (this.health <= 0) {
