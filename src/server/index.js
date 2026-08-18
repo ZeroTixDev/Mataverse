@@ -13,7 +13,7 @@ global.sendRate = 120;
 // global.gameSpeed = 0.5;
 let timer = 0;
 let globalTick = 0;
-const arena = { r: 2000, baseR: 2000, minR: 0 };
+const arena = { r: 2000, baseR: 2000, minR: 500 };
 // round/storm cycle: arena shrinks over ROUND_TIME, then winner + reset
 const ROUND_TIME = 180;
 let roundTimer = ROUND_TIME;
@@ -567,9 +567,10 @@ function ServerTick() {
     const dt = (Date.now() - lastTime) / 1000;
     lastTime = Date.now();
 
-	// storm round: shrink arena over the round, crown a winner, reset
+	// storm round: shrink to minR, hold there for the final 30s, then crown + reset
 	roundTimer -= dt;
-	const roundProgress = 1 - Math.max(roundTimer, 0) / ROUND_TIME;
+	const shrinkTime = ROUND_TIME - 30;
+	const roundProgress = Math.min(1, Math.max(ROUND_TIME - roundTimer, 0) / shrinkTime);
 	arena.r = arena.baseR - (arena.baseR - arena.minR) * roundProgress;
 	if (roundTimer <= 0) {
 		let winner = null;
