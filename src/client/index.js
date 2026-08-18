@@ -34,6 +34,7 @@ let state = 'menu';
 
 // storm round state (synced from server)
 let roundTime = 180;
+let themeHue = 222; // per-round arena tint, synced from server
 let targetArenaR = null;
 let winnerTimer = 0;
 let winnerName = null;
@@ -777,6 +778,9 @@ async function handleMessage(event, lag = true) {
 		roundTime = data.round.t;
 		if (arena != null) {
 			targetArenaR = data.round.r;
+		}
+		if (data.round.hue != undefined) {
+			themeHue = data.round.hue;
 		}
 	}
 	if (data.roundEnd != undefined) {
@@ -2014,8 +2018,8 @@ function run() {
 	stormGrad.addColorStop(1, 'rgba(120, 10, 16, 0.05)');
 	ctx.fillStyle = stormGrad;
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
-	// arena floor
-	ctx.fillStyle = '#23262d'
+	// arena floor, tinted by the round's theme hue
+	ctx.fillStyle = `hsl(${themeHue}, 13%, 15%)`
 	ctx.beginPath();
 	ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2)
 	ctx.fill()
@@ -2042,7 +2046,7 @@ function run() {
 	ctx.beginPath();
 	ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2);
 	ctx.clip();
-	drawTiles('#4a5160');
+	drawTiles(`hsl(${themeHue}, 12%, 35%)`);
 	ctx.restore();
 
 	 // ability effects and stuff
@@ -2056,12 +2060,12 @@ function run() {
 		ctx.beginPath();
 		ctx.arc(a.x, a.y, arena.r, 0, Math.PI * 2);
 		ctx.clip();
+		ctx.fillStyle = `hsl(${themeHue}, 11%, 29%)`;
+		ctx.strokeStyle = `hsl(${themeHue}, 13%, 20%)`;
 		for (const { x, y, w, h } of obstacles) {
 			const pos = offset(x, y);
-			ctx.fillStyle = '#434a56';
 			ctx.fillRect(pos.x - 1, pos.y - 1, w + 2, h + 2);
 			ctx.lineWidth = 5;
-			ctx.strokeStyle = '#2f343d';
 			ctx.strokeRect(pos.x + 1.5, pos.y + 1.5, w - 3, h - 3);
 		}
 		ctx.restore();
@@ -2096,8 +2100,28 @@ function run() {
         }
         let x = offsetX(bullet.x)
         let y = offsetY(bullet.y)
-		// tracer round: brass capsule stretched along its heading with a bright tip
+		// per-weapon rounds: pellets, long tracers, stubby SMG fire, etc.
+		const bWeapon = players[bullet.parent] != undefined ? players[bullet.parent].weapon : null;
 		let bColor = '#c9a86a';
+		let bLenMult = 2.1;
+		let bWidthMult = 1.15;
+		let bShape = 'tracer';
+		if (bWeapon === 'Shotgun') {
+			bShape = 'pellet';
+			bColor = '#d98f5a';
+		} else if (bWeapon === 'Rifle') {
+			bLenMult = 3.4;
+			bWidthMult = 0.8;
+			bColor = '#ffe9b0';
+		} else if (bWeapon === 'SMG') {
+			bLenMult = 1.5;
+			bWidthMult = 0.9;
+			bColor = '#d8c9a2';
+		} else if (bWeapon === 'Burst') {
+			bLenMult = 2.5;
+			bWidthMult = 1.0;
+			bColor = '#ffc46b';
+		}
 		if (bullet.magz) {
 			bColor = '#3d5afe';
 		}
@@ -2129,19 +2153,24 @@ function run() {
 			ctx.stroke();
 		}
 		ctx.globalAlpha = bAlpha;
-		const bLen = bullet.r * 2.1;
-		ctx.strokeStyle = bColor;
-		ctx.lineWidth = Math.max(bullet.r * 1.15, 2);
-		ctx.lineCap = 'round';
-		ctx.beginPath();
-		ctx.moveTo(x - bCos * bLen / 2, y - bSin * bLen / 2);
-		ctx.lineTo(x + bCos * bLen / 2, y + bSin * bLen / 2);
-		ctx.stroke();
-		ctx.fillStyle = 'rgba(255, 245, 210, 0.9)';
-		ctx.beginPath();
-		ctx.arc(x + bCos * bLen / 2, y + bSin * bLen / 2, Math.max(bullet.r * 0.45, 1.2), 0, Math.PI * 2);
-		ctx.fill();
-		ctx.lineCap = 'butt';
+		if (bShape === 'pellet') {
+			// round shot pellet
+			drawOrb(x, y, Math.max(bullet.r * 0.9, 2), bColor);
+		} else {
+			const bLen = bullet.r * bLenMult;
+			ctx.strokeStyle = bColor;
+			ctx.lineWidth = Math.max(bullet.r * bWidthMult, 2);
+			ctx.lineCap = 'round';
+			ctx.beginPath();
+			ctx.moveTo(x - bCos * bLen / 2, y - bSin * bLen / 2);
+			ctx.lineTo(x + bCos * bLen / 2, y + bSin * bLen / 2);
+			ctx.stroke();
+			ctx.fillStyle = 'rgba(255, 245, 210, 0.9)';
+			ctx.beginPath();
+			ctx.arc(x + bCos * bLen / 2, y + bSin * bLen / 2, Math.max(bullet.r * 0.45, 1.2), 0, Math.PI * 2);
+			ctx.fill();
+			ctx.lineCap = 'butt';
+		}
 		ctx.globalAlpha = 1;
         // for (let i = bullet.hist.length - 1; i >= 0; i--) {
         //     let { x, y } = bullet.hist[i];
@@ -2376,19 +2405,11 @@ function run() {
 		ctx.globalAlpha = 1;
 
 		if (player.powers.includes('Reflective Reload') && player.reflecting) {
-			// energy shield: soft wedge fill, glowing arc, bright inner edge
+			// energy shield: glowing arc with a bright inner edge
 			const rrColor = Powers['Reflective Reload'].color;
 			ctx.save();
 			ctx.translate(x, y);
 			ctx.rotate(player.angle);
-			ctx.globalAlpha = 0.12;
-			ctx.fillStyle = rrColor;
-			ctx.beginPath();
-			ctx.moveTo(0, 0);
-			ctx.arc(0, 0, player.reflectRadius, -Math.PI / 2, Math.PI / 2);
-			ctx.closePath();
-			ctx.fill();
-			ctx.globalAlpha = 1;
 			ctx.strokeStyle = rrColor;
 			ctx.lineWidth = 6;
 			ctx.lineCap = 'round';
@@ -2524,12 +2545,15 @@ function run() {
         ctx.rotate(currentAngle - Math.PI / 2);
 		let mult = playerId == selfId ? /*(currentBulletCooldown/bulletCooldown)*/ 
 			(bulletCooldown > 0.3 ? (currentBulletCooldown < bulletCooldown ? 0: 1) :1): 1;
+		const gunHidden = player.reflecting && player.powers.includes('Reflective Reload');
 		if (!player.reloading) {
 			let cmult = playerId == selfId ? Math.min((currentBulletCooldown/bulletCooldown)*(5/3) , 1): 1;
 			// weapon silhouette: dims while on cooldown, kicks back on fire
-			ctx.globalAlpha = 0.55 + 0.45 * mult;
-			drawGunShape(player.weapon, player.r - gunWidth * 2, cmult * 5 - 5, gunWidth * 2, gunHeight * 1.5, Weapons[player.weapon].color ?? '#303030');
-			ctx.globalAlpha = 1;
+			if (!gunHidden) {
+				ctx.globalAlpha = 0.55 + 0.45 * mult;
+				drawGunShape(player.weapon, player.r - gunWidth * 2, cmult * 5 - 5, gunWidth * 2, gunHeight * 1.5, Weapons[player.weapon].color ?? '#303030');
+				ctx.globalAlpha = 1;
+			}
 			if (player.bending) {
 				ctx.fillStyle = Powers['Bended Barrel'].color;
 				ctx.globalAlpha = Math.min(mult + 0.5, 1);
@@ -2556,10 +2580,12 @@ function run() {
 			}
 		} else if (player.reloading) {
 			mult = playerId == selfId ? (player.reloadTimer/player.reloadTime): 1;
-			// gun fades back in as the reload completes
-			ctx.globalAlpha = 0.3 + 0.5 * Math.min(mult, 1);
-			drawGunShape(player.weapon, player.r - gunWidth * 2, 0, gunWidth * 2, gunHeight * 1.5, Weapons[player.weapon].color ?? '#303030');
-			ctx.globalAlpha = 1;
+			// reload reads clearly: gun goes ghostly and slides slightly outward
+			if (!gunHidden) {
+				ctx.globalAlpha = 0.12 + 0.2 * Math.min(mult, 1);
+				drawGunShape(player.weapon, player.r - gunWidth * 2, 10, gunWidth * 2, gunHeight * 1.5, Weapons[player.weapon].color ?? '#303030');
+				ctx.globalAlpha = 1;
+			}
 			ctx.fillStyle = '#e8eaf0';
 			ctx.font = '500 20px Inter, Arial';
 			ctx.textAlign = 'center';
@@ -2571,7 +2597,9 @@ function run() {
 			}
 			if (playerId == selfId) {
 				ctx.rotate(-(currentAngle - Math.PI / 2))
+				ctx.globalAlpha = 0.45;
 				ctx.fillText('...' + Math.floor(mult*Weapons[player.weapon].ammo), player.r + 4/*+ 2 + (player.armor / 100) * 13*/ - gunWidth, player.r);
+				ctx.globalAlpha = 1;
 			}
 		}
 		// ctx.globalAlpha = 0.6
@@ -3115,34 +3143,6 @@ function playerUI() {
 
 	const barX = canvas.width / 2 - 175;
 	const barW = 350;
-	// inset meters with gradient fills and a top gloss line
-	const drawMeter = (mx, my, mw, mh, frac, cTop, cBottom) => {
-		ctx.fillStyle = '#191c22';
-		fillRoundRect(mx, my, mw, mh, 6);
-		ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
-		ctx.lineWidth = 1;
-		strokeRoundRect(mx + 0.5, my + 0.5, mw - 1, mh - 1, 6);
-		if (frac > 0.01) {
-			const fillW = Math.max((mw - 4) * frac, 12);
-			const g = ctx.createLinearGradient(0, my, 0, my + mh);
-			g.addColorStop(0, cTop);
-			g.addColorStop(1, cBottom);
-			ctx.fillStyle = g;
-			fillRoundRect(mx + 2, my + 2, fillW, mh - 4, 4);
-			ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
-			fillRoundRect(mx + 5, my + 3.5, Math.max(fillW - 6, 4), 3, 2);
-		}
-	};
-	// energy (Evades purple; orange while sprint-denied)
-	const denied = me().denied || me().denying;
-	const sprintFrac = Math.max(Math.min(player.cshift / player.shiftLength, 1), 0);
-	drawMeter(barX, canvas.height - 56, barW, 22, sprintFrac,
-		denied ? '#ffab5e' : '#b18aff', denied ? '#f57200' : '#7c4dff');
-	// health (green; red when critical)
-	const hpFrac = Math.max(Math.min(player.hp / 100, 1), 0);
-	drawMeter(barX, canvas.height - 30, barW, 22, hpFrac,
-		hpFrac > 0.3 ? '#5fe396' : '#ff6b6b', hpFrac > 0.3 ? '#27b862' : '#e3243b');
-	// stroked text stays readable over both the bright fill and the dark track
 	const barText = (text, tx, ty, align) => {
 		ctx.textAlign = align;
 		ctx.lineJoin = 'round';
@@ -3152,13 +3152,35 @@ function playerUI() {
 		ctx.fillStyle = '#ffffff';
 		ctx.fillText(text, tx, ty);
 	};
+	// health is the hero bar: thick, gradient, quarter notches, number inside
+	const hpFrac = Math.max(Math.min(player.hp / 100, 1), 0);
+	ctx.fillStyle = '#171a20';
+	fillRoundRect(barX, canvas.height - 52, barW, 22, 6);
+	if (hpFrac > 0.01) {
+		const hg = ctx.createLinearGradient(0, canvas.height - 52, 0, canvas.height - 30);
+		hg.addColorStop(0, hpFrac > 0.3 ? '#65e89c' : '#ff7b7b');
+		hg.addColorStop(1, hpFrac > 0.3 ? '#1fae57' : '#d61f36');
+		ctx.fillStyle = hg;
+		fillRoundRect(barX + 2, canvas.height - 50, Math.max((barW - 4) * hpFrac, 12), 18, 4);
+	}
+	ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+	for (let n = 1; n <= 3; n++) {
+		ctx.fillRect(barX + (barW / 4) * n, canvas.height - 50, 2, 18);
+	}
+	// energy is a slim strip beneath it
+	const denied = me().denied || me().denying;
+	const sprintFrac = Math.max(Math.min(player.cshift / player.shiftLength, 1), 0);
+	ctx.fillStyle = '#171a20';
+	fillRoundRect(barX, canvas.height - 24, barW, 9, 4.5);
+	if (sprintFrac > 0.01) {
+		ctx.fillStyle = denied ? '#ff8c2e' : '#9a6bff';
+		fillRoundRect(barX + 1.5, canvas.height - 22.5, Math.max((barW - 3) * sprintFrac, 8), 6, 3);
+	}
 	ctx.textBaseline = 'middle';
-	ctx.font = '700 12px Inter, Arial';
-	barText('ENERGY', barX + 12, canvas.height - 56 + 11, 'left');
-	barText('HEALTH', barX + 12, canvas.height - 30 + 11, 'left');
 	ctx.font = '700 13px Inter, Arial';
-	barText(`${Math.round(sprintFrac * 100)}%`, barX + barW - 12, canvas.height - 56 + 11, 'right');
-	barText(`${Math.round(player.hp)}`, barX + barW - 12, canvas.height - 30 + 11, 'right');
+	barText(`${Math.round(player.hp)}`, barX + 10, canvas.height - 41, 'left');
+	ctx.font = '700 10px Inter, Arial';
+	barText(`${Math.round(sprintFrac * 100)}%`, barX + barW - 8, canvas.height - 19.5, 'right');
 	ctx.textAlign = 'left';
 	// ctx.globalAlpha = 0.75
 	// ctx.fillStyle = 'black';
