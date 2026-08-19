@@ -14,9 +14,9 @@ global.sendRate = 120;
 let timer = 0;
 let globalTick = 0;
 const arena = { r: 2000, baseR: 2000, minR: 500 };
-// battle royale: 1-minute rounds (with overtime up to 2:00), 10s intermissions.
+// battle royale: 1-minute rounds (overtime until one player stands), 15s intermissions.
 // 'lobby' = fewer than 2 players; joiners play freely and no round runs.
-const INTERMISSION_TIME = 10;
+const INTERMISSION_TIME = 15;
 let phase = 'lobby'; // 'lobby' | 'intermission' | 'live'
 let phaseTimer = 0;
 let roundStarters = 0;
@@ -684,7 +684,8 @@ function ServerTick() {
 			arena.r = Math.max(arena.minR * (1 - (t - 60) / 60), 0);
 		}
 		const alive = Object.values(players).filter((p) => !p.eliminated);
-		if ((roundStarters >= 2 && alive.length <= 1) || t >= 120 || Object.keys(players).length === 0) {
+		// no time cutoff: the round runs until one player is left standing
+		if ((roundStarters >= 2 && alive.length <= 1) || Object.keys(players).length === 0) {
 			endRound(alive.length === 1 ? alive[0] : null);
 		}
 	} else if (phase === 'intermission') {
@@ -996,8 +997,8 @@ function ServerTick() {
 				} else if (players[bullet.fromParent].weapon === 'LMG') {
 					damage = Math.round(8 + 4 * (1-(bullet.lifeTimer/bullet.life)));
 				} else if (players[bullet.fromParent].weapon === 'Energy') {
-					// rewards long-range hits: 12 up close, up to 15 at max range
-					damage = Math.min(Math.round(12 + 3 * (bullet.lifeTimer / bullet.life)), 15);
+					// rewards long-range hits: 10 up close, up to 13 at max range
+					damage = Math.min(Math.round(10 + 3 * (bullet.lifeTimer / bullet.life)), 13);
 				}
 				let mult = 1;
 				if (bullet.magz || bullet.rev) {

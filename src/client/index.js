@@ -2594,7 +2594,7 @@ function run() {
         ctx.globalAlpha = bodyAlpha;
 		ctx.fillStyle = bodyColor;
         ctx.beginPath();
-        ctx.arc(x, y, player.r * (player.hp / 500), 0, Math.PI * 2);
+        ctx.arc(x, y, player.r * (player.hp / 250), 0, Math.PI * 2);
         ctx.fill();
 		// colored identity outline, thickened by armor
         ctx.strokeStyle = outlineColor;
@@ -2647,7 +2647,7 @@ function run() {
 			ctx.globalAlpha = 1;
 			ctx.fillStyle = '#0d0e12';
 			ctx.beginPath();
-        	ctx.arc(x, y, player.r * (player.hp / 500), 0, Math.PI * 2);
+        	ctx.arc(x, y, player.r * (player.hp / 250), 0, Math.PI * 2);
 	        ctx.fill();
 			 ctx.strokeStyle = '#f0453a';
        	 	ctx.lineWidth = 2 + (player.armor / 100) * 13; // + armor
@@ -3114,7 +3114,7 @@ function run() {
         outerRadius
     );
     grd.addColorStop(0, 'rgba(255,0,0,0)');
-    grd.addColorStop(1, 'rgba(255,0,0,' + (0.38 - (me().hp / 500)*0.38) + ')');
+    grd.addColorStop(1, 'rgba(255,0,0,' + (0.38 - (me().hp / 250)*0.38) + ')');
     ctx.fillStyle = grd;
     ctx.fill();
 
@@ -3398,7 +3398,7 @@ function playerUI() {
 	const barX = canvas.width / 2 - 175;
 	const barW = 350;
 	// health is the hero bar: thick, gradient, number inside
-	const hpFrac = Math.max(Math.min(player.hp / 500, 1), 0);
+	const hpFrac = Math.max(Math.min(player.hp / 250, 1), 0);
 	ctx.fillStyle = '#171a20';
 	fillRoundRect(barX, canvas.height - 52, barW, 22, 6);
 	if (hpFrac > 0.01) {
